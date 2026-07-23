@@ -1,0 +1,4 @@
+/build
+resources/package/package.data
+/tests/build
+.cache

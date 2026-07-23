@@ -1,0 +1,12 @@
+-std=c11
+-D_POSIX_C_SOURCE=199309L
+-I./include
+-I./libs/raylib/src
+-DDEBUG
+-DLOG_LEVEL=5
+-DDEBUG_MEMORY_USAGE
+-DARENA_FALLBACK_MALLOC
+-DHOT_RELOAD
+-Wall
+-Wextra
+
