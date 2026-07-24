@@ -1,6 +1,5 @@
 #pragma once
 
-#include "core/app.h"
 #include "core/defs.h"
 #include "core/draw.h"
 #include "core/resources.h"
@@ -25,13 +24,10 @@ API void draw_cell_state(game_t *game, Vector2 position, board_cell_state state)
   Color color;
   switch (state) {
     case CELL_HOVERED:
-      color = ColorAlpha(WHITE, 0.5);
+      color = COLOR_GRID_HOVER;
     break;
     case CELL_SELECTED:
-      color = ColorAlpha(WHITE, 0.4);
-    break;
-    case CELL_DRAGGING:
-      color = ColorAlpha(ORANGE, 0.4);
+      color = COLOR_GRID_SELECTED;
     break;
   }
 
@@ -41,31 +37,38 @@ API void draw_cell_state(game_t *game, Vector2 position, board_cell_state state)
     cell_size + 2, 
     cell_size + 2
   };
-  float line_tick = 4.0;
+  float line_tick = GRID_LINE_TICK;
   DrawRectangleLinesEx(rec, line_tick, color);
 }
 
-API void draw_hover(game_t *game)
+API void draw_board_cell_hover(game_t *game)
 {
+  if (game->hover_id == IDX_NONE) {
+    return;
+  }
   board_t *board = &game->board;
-
-  if (game->hover != IDX_NONE) {
-    Vector2 position = board_idx_to_world(board, game->hover);
-    draw_cell_state(game, position, CELL_HOVERED);
-  }
-
-  if (game->selected != IDX_NONE) {
-    u16 value = board->value[game->selected];
-    Vector2 position = board->cell_position[game->selected];
-    draw_atlas_fliph(board->atlas, value, position, board->scale, 0, WHITE);
-    draw_cell_state(game, position, CELL_DRAGGING);
-  }
+  board_layer_t *layer = board->cell_layer[game->hover_id];
+  entity_id_t index = layer->entity_index[game->hover_id];
+  Vector2 position = layer->position[index];
+  draw_cell_state(game, position, CELL_HOVERED);
+  // DrawText(TextFormat("id: %d\nindex: %d", game->hover_id, index), position.x - 40, position.y - 40, 20, RED);
 }
 
-API void draw_board(game_t *game)
+API void draw_board_cell_selected(game_t *game)
+{
+  if (game->selected_id == IDX_NONE) {
+    return;
+  }
+  board_t *board = &game->board;
+  board_layer_t *layer = board->cell_layer[game->selected_id];
+  entity_id_t index = layer->entity_index[game->selected_id];
+  Vector2 position = layer->position[index];
+  draw_cell_state(game, position, CELL_SELECTED);
+}
+
+API void draw_board_grid(game_t *game)
 {
   board_t *board = &game->board;
-  atlas_t *atlas = board->atlas;
 
   u16 cols = board->size.x / board->cell_size;
   u16 rows = board->size.y / board->cell_size;
@@ -74,20 +77,10 @@ API void draw_board(game_t *game)
 
   u16 cell_size = board->cell_size * board->scale;
 
-  u16 grid_size = rows * cols;
-  for (u16 idx = 0; idx < grid_size; idx++) {
-    if (idx == game->selected) {
-      continue;
-    }
-    u16 value = board->value[idx];
-    Vector2 cell_position = board->cell_position[idx];
-    draw_atlas_fliph(atlas, value, cell_position, board->scale, 0, WHITE);
-  }
-
   float margin_left = board->position.x;
   float margin_top  = board->position.y;
 
-  float line_tick = 4.0;
+  float line_tick = GRID_LINE_TICK;
   Color line_color = COLOR_GRID_LINE;
 
   for (u16 col = 0; col <= cols; col++) {
@@ -121,3 +114,37 @@ API void draw_board(game_t *game)
   }
 }
 
+API void draw_board_layer_bg(game_t *game)
+{
+  board_t *board = &game->board;
+  atlas_t *atlas = board->atlas;
+  board_layer_t *layer = &board->layer_bg;
+
+  for (entity_id_t i = 0; i < layer->count; i++) {
+    grid_idx_t texture_idx = layer->texture_idx[i];
+    Vector2 position = layer->position[i];
+    draw_atlas_fliph(atlas, texture_idx, position, board->scale, 0, WHITE);
+  }
+}
+
+API void draw_board_layer_fg(game_t *game)
+{
+  board_t *board = &game->board;
+  atlas_t *atlas = board->atlas;
+  board_layer_t *layer = &board->layer_fg;
+
+  for (entity_id_t i = 0; i < layer->count; i++) {
+    grid_idx_t texture_idx = layer->texture_idx[i];
+    Vector2 position = layer->position[i];
+    draw_atlas_fliph(atlas, texture_idx, position, board->scale, 0, WHITE);
+  }
+}
+
+API void draw_board(game_t *game)
+{
+  draw_board_layer_bg(game);
+  draw_board_grid(game);
+  draw_board_cell_hover(game);
+  draw_board_layer_fg(game);
+  draw_board_cell_selected(game);
+}

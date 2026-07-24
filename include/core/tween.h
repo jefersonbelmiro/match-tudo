@@ -267,7 +267,7 @@ API void tween_process(float delta)
   if (pool->remove_count) {
     u16 write_index = 0;
     u32 write_tweener = 0;
-
+    
     for (u16 read_index = 0; read_index < pool->tween_count; read_index++) {
       if (pool->flags[read_index] & TWEEN_FLAG_ACTIVE) {
         if (write_index != read_index) {
@@ -313,9 +313,18 @@ API void tween_process(float delta)
   bool paused = app_paused();
 
   for (u16 i = 0; i < pool->tween_count; i++) {
-    if (!(pool->flags[i] & TWEEN_FLAG_ACTIVE)) continue;
+    if (!(pool->flags[i] & TWEEN_FLAG_ACTIVE)) {
+      // pool->remove_queue[pool->remove_count++] = i;
+      continue;
+    }
+    if ((pool->flags[i] & TWEEN_FLAG_COMPLETED)) {
+      pool->flags[i] &= ~TWEEN_FLAG_ACTIVE;
+      // pool->flags[i] &= ~TWEEN_FLAG_COMPLETED;
+      pool->remove_queue[pool->remove_count++] = i;
+      continue;
+    }
 
-    pool->flags[i] &= ~TWEEN_FLAG_COMPLETED;
+    // pool->flags[i] &= ~TWEEN_FLAG_COMPLETED;
 
     if (pool->flags[i] & TWEEN_FLAG_PAUSED) continue;
     if (!(pool->flags[i] & TWEEN_FLAG_PROCESS_AWAYS) && paused) continue;
@@ -368,8 +377,8 @@ API void tween_process(float delta)
         tween__loop_reset(pool, i);
       } else {
         pool->flags[i] |= TWEEN_FLAG_COMPLETED;
-        pool->flags[i] &= ~TWEEN_FLAG_ACTIVE;
-        pool->remove_queue[pool->remove_count++] = i;
+        // pool->flags[i] &= ~TWEEN_FLAG_ACTIVE;
+        // pool->remove_queue[pool->remove_count++] = i;
       }
     }
   }

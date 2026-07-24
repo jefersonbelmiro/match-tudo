@@ -2,7 +2,6 @@
 
 #include "core/arena.h"
 #include "core/defs.h"
-#include "core/tween.h"
 #include "game/board.h"
 #include "raylib.h"
 
@@ -16,10 +15,8 @@ typedef struct {
   game_config_t config;
   board_t       board;
   Vector2       selected_offset;
-  // Vector2       selected_position;
-  grid_idx_t    selected;
-  tween_h       selected_tween;
-  grid_idx_t    hover;
-  tween_h       hover_tween;
+  entity_id_t   selected_id;
+  grid_idx_t    selected_idx;
+  entity_id_t   hover_id;
 } game_t;
 

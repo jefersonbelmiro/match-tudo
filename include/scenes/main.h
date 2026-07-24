@@ -25,30 +25,26 @@ API main_scene_t* main_scene_init()
   game_init(game, cfg, arena);
   scene->game = game;
 
-  printn("main_scene_init");
   return scene;
 }
 
 API bool main_scene_exiting(UNUSED main_scene_t *scene)
 {
-  printn("main_scene_exiting");
   return true;
 }
 
 API bool main_scene_entering(UNUSED main_scene_t *scene)
 {
-  printn("main_scene_entering");
   return true;
 }
 
 API void main_scene_sync(main_scene_t *scene, sync_signal_type_t signal)
 {
   (void) scene; (void) signal;
-  printn("main_scene_sync: %d", signal);
   // game_process(delta);
   switch (signal) {
     case SYNC_SIGNAL_WINDOW_RESIZED:
-      game_sync_resize(scene->game);
+      game_sync_size(scene->game);
     break;
     default: break;
   }
@@ -57,7 +53,6 @@ API void main_scene_sync(main_scene_t *scene, sync_signal_type_t signal)
 API void main_scene_free(main_scene_t *scene)
 {
   (void) scene;
-  printn("main_scene_free");
 }
 
 API void main_scene_process(main_scene_t *scene, float delta)

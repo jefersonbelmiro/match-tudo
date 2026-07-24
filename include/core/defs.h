@@ -91,13 +91,6 @@
 #define countof(a)    (u32)(sizeof(a) / sizeof((a)[0]))
 #define expand_of(a)  (a), countof(a)
 
-#define APP_ARENA_SIZE          KB(64)
-#define APP_SCENE_ARENA_SIZE    KB(32)
-
-#define MAX_TWEENS              32
-#define MAX_TWEENERS_TOTAL      96
-#define MAX_TIMERS              32
-
 typedef uint8_t   u8;
 typedef uint16_t  u16;
 typedef uint32_t  u32;
@@ -156,8 +149,6 @@ enum {
   UI_STATE_DISABLED  = 1u << 4,
 };
 
-#define IDX_NONE   ((grid_idx_t)UINT16_MAX)  // sentinel: no valid cell index
-
 // Input layer bitmask - multiple layers can be active simultaneously
 // Cleared to 0 every frame by input_process.
 #define INPUT_LAYER_NONE   0u
@@ -165,8 +156,16 @@ enum {
 #define INPUT_LAYER_HUD    (1u << 1)
 #define INPUT_LAYER_HUD_FG (1u << 2)
 
-static const u32   GRID_CELL_SIZE = 64;
-static const float PLANET_RADIUS  = 20.0f;
+#define APP_ARENA_SIZE          KB(64)
+#define APP_SCENE_ARENA_SIZE    KB(32)
+
+#define MAX_TWEENS              32
+#define MAX_TWEENERS_TOTAL      96
+
+#define MAX_TIMERS              32
+
+#define IDX_NONE    ((grid_idx_t)UINT16_MAX)  // sentinel: no valid cell index
+#define ENTITY_NONE ((entity_id_t)UINT16_MAX) // sentinel: no valid entity id
 
 API void printn(const char* format, ...) 
 {

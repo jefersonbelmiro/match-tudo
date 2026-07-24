@@ -20,7 +20,7 @@
 #define COLOR_PRIMARY_DARK_8 ColorBrightness(COLOR_PRIMARY, -0.8f)
 #define COLOR_PRIMARY_DARK_9 ColorBrightness(COLOR_PRIMARY, -0.9f)
 
-#define COLOR_SECONDARY COLOR_ORANGE
+#define COLOR_SECONDARY COLOR_GREEN
 #define COLOR_SECONDARY_DARK_2 ColorBrightness(COLOR_SECONDARY, -0.2f)
 #define COLOR_SECONDARY_DARK_3 ColorBrightness(COLOR_SECONDARY, -0.3f)
 #define COLOR_SECONDARY_DARK_4 ColorBrightness(COLOR_SECONDARY, -0.4f)
@@ -31,9 +31,10 @@
 #define COLOR_SECONDARY_DARK_9 ColorBrightness(COLOR_SECONDARY, -0.9f)
 
 
-
-#define COLOR_GRID_HOVER    ((Color){  50,  50,  50, 100 })
-#define COLOR_GRID_LINE     ((Color){  80,  80,  105, 255 })
+#define COLOR_GRID_HOVER    ((Color){  255,  255,  255, 185 }) 
+#define COLOR_GRID_LINE     ((Color){  0,  0,  0, 255 })
+#define COLOR_GRID_SELECTED ((Color){  255, 255, 255, 205 })
+#define GRID_LINE_TICK 4.0
 
 #define UI_ALPHA_DISABLED 0.35f
 

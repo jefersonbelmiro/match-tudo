@@ -5,6 +5,7 @@
 #include "core/mem.h"
 #include "core/resources.h"
 #include "core/smath.h"
+#include "core/tween.h"
 #include "game/board.h"
 #include "game/game.h"
 #include "game/game_draw.h"
@@ -12,7 +13,7 @@
 
 API void game_create_board(game_t *game)
 {
-  Texture2D target_texture = resource_texture(RESOURCE_TEXTURE_001);
+  Texture2D target_texture = resource_texture(RESOURCE_TEXTURE_003);
   board_t *board = &game->board;
   float texture_scale = 1.0;
 
@@ -52,66 +53,39 @@ API void game_create_board(game_t *game)
 
   float cell_offset_x = board->position.x + cell_size * 0.5;
   float cell_offset_y = board->position.y + cell_size * 0.5;
+  
+  board_layer_t *layer_bg = &board->layer_bg;
 
   u16 grid_size = rows * cols;
   for (u16 idx = 0; idx < grid_size; idx++) {
     u16 row = idx / cols;
     u16 col = idx % cols;
-
-    board->value[idx] = idx;
-    board->cell_position[idx] = (Vector2){
-      cell_offset_x + cell_size * col,
-      cell_offset_y + cell_size * row
-    };
+    entity_id_t id = idx;
+    board_layer_append(
+      layer_bg, 
+      id, 
+      idx,
+      (Vector2){
+        cell_offset_x + cell_size * col,
+        cell_offset_y + cell_size * row
+      },
+      idx
+    );
+    board->cell_layer[id] = layer_bg;
+    board->cell_id[idx] = id;
+    board->cell_tween[id] = TWEEN_NONE;
   }
+
   // fisher-yates/knuth shuffle
-  for (u16 i = grid_size - 1; i > 0; i--) {
+  for (u16 i = layer_bg->count - 1; i > 0; i--) {
     u16 j = m_rand32(0, i);
-    u16 tmp = board->value[i];
-    board->value[i] = board->value[j];
-    board->value[j] = tmp;
+    u16 tmp = layer_bg->texture_idx[i];
+    layer_bg->texture_idx[i] = layer_bg->texture_idx[j];
+    layer_bg->texture_idx[j] = tmp;
   }
-
-  hot_sync({
-    printn("\n\n");
-    printn("idx size: %d", rows * cols);
-    printn("target_texture: %d/%d", target_texture.width, target_texture.height);
-    printn("target_texture scale: %g", texture_scale);
-    printn("target_texture offset_top: %g", texture_offset_top);
-    printn("board: w:%d h:%d", board->size.x, board->size.y);
-    printn("\n\n");
-  });
 }
 
-API void game_init(game_t *game, game_config_t cfg, arena_t *arena)
-{
-  mem_set_zero(game, sizeof(*game));
-
-  u16 width = m_step(cfg.view_port.x, cfg.cell_size);
-  u16 height = m_step(cfg.view_port.y, cfg.cell_size);
-  u16 cell_size = cfg.cell_size;
-  u16 cols = width / cell_size;
-  u16 rows = height / cell_size;
-
-  game->arena  = arena;
-  game->config = cfg;
-  game->hover = IDX_NONE;
-  game->selected = IDX_NONE;
-  game->board = (board_t){
-    .value = arena_push(arena, grid_idx_t, rows * cols),
-    .atlas = arena_push(arena, atlas_t, 1),
-    .cell_position = arena_push(arena, Vector2, rows * cols),
-    .cell_size = cfg.cell_size,
-    .size = {width, height},
-    .position = {0, 0},
-    .scale = 1.0,
-  };
-
-  board_sync_resize(&game->board);
-  game_create_board(game);
-}
-
-API void game_sync_resize(game_t *game)
+API void game_sync_size(game_t *game)
 {
   board_t *board = &game->board;
   screen_size_t *screen = app_screen_size();
@@ -127,8 +101,7 @@ API void game_sync_resize(game_t *game)
     board->scale = (screen->y - 40) / board->size.y;
   }
 
-  board_sync_resize(&game->board);
-  printn("board w: %d h:%d scale: %g", board->size.x, board->size.y, board->scale);
+  board_sync_size(&game->board);
 }
 
 API void game_update_input(game_t *game)
@@ -156,73 +129,129 @@ API void game_update_input(game_t *game)
   u16 row = m_floor((mouse.y - top) / cell_size);
   u16 idx = row * cols + col;
 
-  game->hover = IDX_NONE;
+  game->hover_id = ENTITY_NONE;
   if (in_board_bounds) {
-    game->hover = idx;
+    game->hover_id = board->cell_id[idx];
   }
 
-  if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && game->hover != IDX_NONE) {
-    printn("left presed: %d", game->hover);
-    // Vector2 cell_position = {
-    //   board->position.x + cell_size * 0.5 + cell_size * col,
-    //   board->position.y + cell_size * 0.5 + cell_size * row
-    // };
-    Vector2 cell_position = game->board.cell_position[game->hover];
+  // DrawText(TextFormat(
+  //   "mouse   idx: %d\n"
+  //   "hover_id    id: %d\n"
+  //   "selected_id id: %d\n"
+  //   , idx, game->hover_id, game->selected_id), 10, 40, 20, LIME);
+  //
+  if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && game->hover_id != ENTITY_NONE) {
 
-    game->selected = idx;
+    if (tween_is_active(board->cell_tween[game->hover_id])) {
+      tween_kill(board->cell_tween[game->hover_id]);
+      board_layer_swap(&board->layer_fg, &board->layer_bg, game->hover_id);
+      board->cell_layer[game->hover_id] = &board->layer_bg;
+    }
+
+    board_layer_swap(&board->layer_bg, &board->layer_fg, game->hover_id);
+    board->cell_layer[game->hover_id] = &board->layer_fg;
+
+    board_layer_t *layer = board->cell_layer[game->hover_id];
+    entity_id_t cell_index = layer->entity_index[game->hover_id];
+    Vector2 cell_position = layer->position[cell_index];
+
+    game->selected_idx = idx;
+    game->selected_id = game->hover_id;
     game->selected_offset = (Vector2){ 
       GetMouseX() - cell_position.x, 
       GetMouseY() - cell_position.y
     };
   }
-  else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && game->selected != IDX_NONE) {
-    printn("left released: selected: %d hover: %d", game->selected, idx);
+  else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && game->selected_id != ENTITY_NONE) {
 
-    if (game->hover != IDX_NONE) {
-      grid_idx_t *value = game->board.value;
-      grid_idx_t hover_value = value[game->hover];
-      value[game->hover] = value[game->selected];
-      value[game->selected] = hover_value;
+    if (game->hover_id != ENTITY_NONE && idx != game->selected_idx) {
 
-      // Vector2 *positions = board->cell_position;
-      // Vector2 hover_pos = positions[game->hover];
-      // value[game->hover] = value[game->selected];
-      // value[game->selected] = hover_value;
+      board->cell_id[game->selected_idx] = game->hover_id;
+      board->cell_id[idx] = game->selected_id;
 
+      board_layer_swap(&board->layer_bg, &board->layer_fg, game->hover_id);
+      board->cell_layer[game->hover_id] = &board->layer_fg;
 
+      // swap-ellastic in selected to be last layer draw index
+      board_layer_swap(&board->layer_fg, &board->layer_bg, game->selected_id);
+      board_layer_swap(&board->layer_bg, &board->layer_fg, game->selected_id);
 
-      // Vector2 *pos = game->board.cell_position;
-      // Vector2 sel_target = pos[game->hover];
-      // Vector2 hov_target = board_idx_to_world(board, game->selected);
-      // tween_h h = tween_create_parallel();
-      // tween_add(h, &pos[game->selected].x, sel_target.x, 0.2f, ease_out_quad);
-      // tween_add(h, &pos[game->selected].y, sel_target.y, 0.2f, ease_out_quad);
-      // tween_add(h, &pos[game->hover].x, hov_target.x, 0.2f, ease_out_quad);
-      // tween_add(h, &pos[game->hover].y, hov_target.y, 0.2f, ease_out_quad);
+      board_grid_snap_animated(board, game->selected_id, idx);
+      board_grid_snap_animated(board, game->hover_id, game->selected_idx);
     } else {
-      // Vector2 *pos = game->board.cell_position;
-      // Vector2 target = board_idx_to_world(board, game->selected);
-      // tween_h h = tween_create_parallel();
-      // tween_add(h, &pos[game->selected].x, target.x, 0.2f, ease_out_quad);
-      // tween_add(h, &pos[game->selected].y, target.y, 0.2f, ease_out_quad);
+      board_grid_snap_animated(board, game->selected_id, game->selected_idx);
     }
 
-    game->selected = IDX_NONE;
+    game->selected_id = ENTITY_NONE;
+    game->selected_idx = IDX_NONE;
   } 
 
-  if (game->selected != IDX_NONE) {
-    game->board.cell_position[game->selected] = (Vector2){ 
+  if (game->selected_id != ENTITY_NONE) {
+
+    board_layer_t *selected_layer = board->cell_layer[game->selected_id];
+    entity_id_t selected_index = selected_layer->entity_index[game->selected_id];
+    Vector2 *position = &selected_layer->position[selected_index];
+    *position = (Vector2){ 
       GetMouseX() - game->selected_offset.x, 
       GetMouseY() - game->selected_offset.y
     };
   }
 }
 
+API void game_sync_layer_fg(game_t *game)
+{
+  board_t *board = &game->board;
+  board_layer_t *layer = &board->layer_fg;
+
+  for (entity_id_t i = 0; i < layer->count; i++) {
+    entity_id_t id = layer->index_entity[i];
+    tween_h tween = board->cell_tween[id];
+    if (!tween_completed(tween)) {
+      continue;
+    }
+    board_layer_swap(&board->layer_fg, &board->layer_bg, id);
+    board->cell_layer[id] = &board->layer_bg;
+  }
+}
+
+API void game_init(game_t *game, game_config_t cfg, arena_t *arena)
+{
+  mem_set_zero(game, sizeof(*game));
+
+  u16 width = m_step(cfg.view_port.x, cfg.cell_size);
+  u16 height = m_step(cfg.view_port.y, cfg.cell_size);
+  u16 cell_size = cfg.cell_size;
+  u16 cols = width / cell_size;
+  u16 rows = height / cell_size;
+
+  game->arena  = arena;
+  game->config = cfg;
+  game->hover_id = ENTITY_NONE;
+  game->selected_id = ENTITY_NONE;
+  game->selected_idx = IDX_NONE;
+  game->board = (board_t){
+    .atlas = arena_push(arena, atlas_t, 1),
+    .cell_id = arena_push(arena, entity_id_t, rows * cols),
+    .cell_tween = arena_push(arena, tween_h, rows * cols),
+    .cell_layer = arena_push(arena, board_layer_t*, rows * cols),
+    .position = {0, 0},
+    .size = {width, height},
+    .cell_size = cfg.cell_size,
+    .scale = 1.0,
+  };
+
+  board_layer_init(&game->board.layer_bg, arena, rows * cols);
+  board_layer_init(&game->board.layer_fg, arena, rows * cols);
+
+  board_sync_size(&game->board);
+  game_create_board(game);
+}
 
 API void game_process(game_t *game, float delta)
 {
   (void) delta;
   game_update_input(game);
+  game_sync_layer_fg(game);
 }
 
 API void game_draw(game_t *game)
@@ -230,5 +259,5 @@ API void game_draw(game_t *game)
   (void) game;
   draw_border();
   draw_board(game);
-  draw_hover(game);
+  draw_fps();
 }
