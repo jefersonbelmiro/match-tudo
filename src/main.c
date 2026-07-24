@@ -55,7 +55,6 @@ int main()
 
     app_draw();
 
-    DrawFPS(10, 10);
     EndDrawing();
   }
 

@@ -6,8 +6,9 @@
 #include "raylib.h"
 
 typedef struct {
-  u16 cell_size;
-  Vector2 view_port;
+  Vector2    view_port;
+  u16        cell_size;
+  grid_idx_t texture_idx;
 } game_config_t;
 
 typedef struct {

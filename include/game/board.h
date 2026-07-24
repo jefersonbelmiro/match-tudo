@@ -96,16 +96,6 @@ API void board_layer_swap(board_layer_t *source, board_layer_t *target, entity_i
   board_layer_erase(source, id);
 }
 
-API void board_sync_size(board_t *board)
-{
-  screen_size_t *screen = app_screen_size();
-  u16 width = board->size.x * board->scale;
-  u16 height = board->size.y * board->scale;
-  float left = screen->x * 0.5 - width  * 0.5;
-  float top  = screen->y * 0.5 - height * 0.5;
-  board->position = (Vector2){ left, top };
-}
-
 API Vector2 board_idx_to_world(board_t *board, grid_idx_t idx)
 {
   u16 cell_size = board->cell_size * board->scale;
@@ -143,3 +133,30 @@ API void board_grid_snap_animated(board_t *board, entity_id_t id, grid_idx_t tar
 
   layer->target_idx[index] = target_idx;
 }
+
+API void board_sync_size(board_t *board)
+{
+  screen_size_t *screen = app_screen_size();
+  u16 width = board->size.x * board->scale;
+  u16 height = board->size.y * board->scale;
+  float left = screen->x * 0.5 - width  * 0.5;
+  float top  = screen->y * 0.5 - height * 0.5;
+  board->position = (Vector2){ left, top };
+
+  {
+    board_layer_t *layer = &board->layer_bg;
+    for (entity_id_t i = 0; i < layer->count; i++) {
+      grid_idx_t idx = layer->idx[i];
+      layer->position[i] = board_idx_to_world(board, idx);
+    }
+  }
+  {
+    board_layer_t *layer = &board->layer_fg;
+    for (entity_id_t i = 0; i < layer->count; i++) {
+      grid_idx_t idx = layer->idx[i];
+      layer->position[i] = board_idx_to_world(board, idx);
+    }
+  }
+
+}
+

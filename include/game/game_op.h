@@ -13,7 +13,7 @@
 
 API void game_create_board(game_t *game)
 {
-  Texture2D target_texture = resource_texture(RESOURCE_TEXTURE_003);
+  Texture2D target_texture = resource_texture(game->config.texture_idx);
   board_t *board = &game->board;
   float texture_scale = 1.0;
 
@@ -145,7 +145,12 @@ API void game_update_input(game_t *game)
     if (tween_is_active(board->cell_tween[game->hover_id])) {
       tween_kill(board->cell_tween[game->hover_id]);
       board_layer_swap(&board->layer_fg, &board->layer_bg, game->hover_id);
-      board->cell_layer[game->hover_id] = &board->layer_bg;
+
+      board_layer_t *layer = &board->layer_bg;
+      entity_id_t index = layer->entity_index[game->hover_id];
+      grid_idx_t idx = layer->idx[index];
+      layer->position[index] = board_idx_to_world(board, idx);
+      board->cell_layer[game->hover_id] = layer;
     }
 
     board_layer_swap(&board->layer_bg, &board->layer_fg, game->hover_id);
@@ -165,6 +170,17 @@ API void game_update_input(game_t *game)
   else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && game->selected_id != ENTITY_NONE) {
 
     if (game->hover_id != ENTITY_NONE && idx != game->selected_idx) {
+
+      if (tween_is_active(board->cell_tween[game->hover_id])) {
+        tween_kill(board->cell_tween[game->hover_id]);
+        board_layer_swap(&board->layer_fg, &board->layer_bg, game->hover_id);
+
+        board_layer_t *layer = &board->layer_bg;
+        entity_id_t index = layer->entity_index[game->hover_id];
+        grid_idx_t idx = layer->idx[index];
+        layer->position[index] = board_idx_to_world(board, idx);
+        board->cell_layer[game->hover_id] = layer;
+      }
 
       board->cell_id[game->selected_idx] = game->hover_id;
       board->cell_id[idx] = game->selected_id;
