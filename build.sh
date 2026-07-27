@@ -131,7 +131,8 @@ while [ $# -gt 0 ]; do
 done
 
 if [ "$RELEASE" = true ]; then
-  CFLAGS="-Wall -Wextra -std=c11 -flto=auto -O3 -pedantic"
+  # CFLAGS="-Wall -Wextra -std=c11 -flto=auto -O3 -pedantic"
+  CFLAGS="-Wall -Wextra -std=c11 -O3 -pedantic -march=native -mtune=native -ftree-vectorize -ffast-math -flto"
   DEFS="-DRELEASE -DAPP_PACKAGE_RESOURCE=1"
   DEPS="$DEPS_BASE"
   LD_FLAGS=""
@@ -189,9 +190,9 @@ else
   exit 1
 fi
 
-if [ "$RELEASE" = true ]; then
-  echo "Packing..."
-  $CC $CFLAGS $INC $DEFS tools/mkpackage.c $DEPS -o build/mkpackage
-  build/mkpackage
-  cp resources/package/package.data build/package.data
-fi
+# if [ "$RELEASE" = true ]; then
+#   echo "Packing..."
+#   $CC $CFLAGS $INC $DEFS tools/mkpackage.c $DEPS -o build/mkpackage
+#   build/mkpackage
+#   cp resources/package/package.data build/package.data
+# fi

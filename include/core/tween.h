@@ -205,6 +205,18 @@ API bool tween_is_active(tween_h h)
   return d != TWEEN_NONE && (g_tween->flags[d] & TWEEN_FLAG_ACTIVE) != 0;
 }
 
+// Update the target pointer of a tweener within an active tween.
+// Used when a layer operation moves an entity's position slot, so the
+// existing tween writes to the correct memory address.
+API void tween_retarget(tween_h h, u8 tweener_idx, float *new_target)
+{
+  tween_h d = tween__dense(h);
+  if (d == TWEEN_NONE) return;
+  assert(tweener_idx < g_tween->tweener_count[d]);
+  u32 ti = g_tween->tweener_start[d] + tweener_idx;
+  g_tween->tw_target[ti] = new_target;
+}
+
 // Returns true if this tween completed on the most recent tween_process call.
 API bool tween_completed(tween_h h)
 {

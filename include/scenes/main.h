@@ -21,7 +21,7 @@ API main_scene_t* main_scene_init()
   game_config_t cfg = {
     .cell_size = 128,
     .view_port = { min(screen->x, 400) * 0.9, min(screen->y, 600) * 0.9 },
-    .texture_idx = RESOURCE_TEXTURE_004,
+    .texture_idx = RESOURCE_TEXTURE_001,
   };
   game_init(game, cfg, arena);
   scene->game = game;

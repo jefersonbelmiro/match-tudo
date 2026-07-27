@@ -17,3 +17,10 @@ modes:
     - fast-pace, with energetic music and timer
 scoreboard global, may by timer, by points, some score to be defined
 
+
+# perf
+
+```bash
+perf stat -d -d -d build/match-tudo
+perf stat -e cache-misses,cache-references,L1-dcache-load-misses,L1-dcache-loads build/match-tudo
+```
