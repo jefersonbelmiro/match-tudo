@@ -53,6 +53,7 @@ API void draw_board_cell_hover(game_t *game)
   board_layer_t *layer = board->entity_layer[game->hover_id];
   entity_id_t index = layer->entity_index[game->hover_id];
   Vector2 position = layer->position[index];
+  // Vector2 position = board_idx_to_world(board, layer->idx[index]);
   draw_cell_state(game, position, CELL_HOVERED);
   // DrawText(TextFormat("id: %d\nindex: %d", game->hover_id, index), position.x - 40, position.y - 40, 20, RED);
 }

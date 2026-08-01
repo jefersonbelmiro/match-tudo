@@ -72,7 +72,7 @@ API void game_create_board(game_t *game)
       idx
     );
     board->entity_layer[id] = layer_bg;
-    board->cell_id[idx] = id;
+    board->cell_entity[idx] = id;
     board->entity_tween[id] = TWEEN_NONE;
   }
 
@@ -131,22 +131,23 @@ API void game_update_input(game_t *game)
 
   game->hover_id = ENTITY_NONE;
   if (in_board_bounds) {
-    game->hover_id = board->cell_id[idx];
+    game->hover_id = board->cell_entity[idx];
   }
 
   // DrawText(TextFormat(
   //   "mouse   idx: %d\n"
   //   "hover_id    id: %d\n"
-  //   "selected_id id: %d\n"
-  //   , idx, game->hover_id, game->selected_id), 10, 40, 20, LIME);
-  //
+  //   "selected_id id: %d\n",
+  //   idx, game->hover_id, game->selected_id
+  // ), 10, 40, 20, LIME);
+
   if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && game->selected_id != ENTITY_NONE) {
 
     if (game->hover_id != ENTITY_NONE && game->hover_id != game->selected_id && 
         !tween_is_active(board->entity_tween[game->hover_id])
     ) {
-      board->cell_id[game->selected_idx] = game->hover_id;
-      board->cell_id[idx] = game->selected_id;
+      board->cell_entity[game->selected_idx] = game->hover_id;
+      board->cell_entity[idx] = game->selected_id;
 
       board_layer_swap_fg(board, game->hover_id);
 
@@ -224,7 +225,7 @@ API void game_init(game_t *game, game_config_t cfg, arena_t *arena)
   game->selected_idx = IDX_NONE;
   game->board = (board_t){
     .atlas = arena_push(arena, atlas_t, 1),
-    .cell_id = arena_push(arena, entity_id_t, rows * cols),
+    .cell_entity = arena_push(arena, entity_id_t, rows * cols),
     .entity_tween = arena_push(arena, tween_h, rows * cols),
     .entity_layer = arena_push(arena, board_layer_t*, rows * cols),
     .position = {0, 0},

@@ -22,9 +22,9 @@ typedef struct {
 typedef struct {
   atlas_t *atlas;
 
-  entity_id_t    *cell_id; // idx -> id
-  tween_h        *entity_tween; // entity -> tween
-  board_layer_t **entity_layer; // entity -> layer
+  entity_id_t    *cell_entity;  // grid idx -> entity
+  tween_h        *entity_tween; // entity   -> tween
+  board_layer_t **entity_layer; // entity   -> layer
 
   board_layer_t layer_bg;
   board_layer_t layer_fg;
