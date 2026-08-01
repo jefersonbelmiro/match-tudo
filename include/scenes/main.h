@@ -4,7 +4,9 @@
 #include "core/app_op.h"
 #include "core/arena.h"
 #include "core/defs.h"
+#include "core/resources.h"
 #include "core/smath.h"
+#include "core/sound.h"
 #include "game/game_op.h"
 
 typedef struct {
@@ -26,6 +28,8 @@ API main_scene_t* main_scene_init()
   game_init(game, cfg, arena);
   scene->game = game;
 
+  music_play(RESOURCE_MUSIC_LOOP_01);
+
   return scene;
 }
 
@@ -45,6 +49,12 @@ API void main_scene_sync(main_scene_t *scene, sync_signal_type_t signal)
     case SYNC_SIGNAL_WINDOW_RESIZED:
       game_sync_size(scene->game);
     break;
+    case SYNC_SIGNAL_ON_EXIT: {
+      tween_cancel_all();
+      timer_cancel_all();
+      break;
+    }
+
     default: break;
   }
 }
@@ -56,7 +66,10 @@ API void main_scene_free(main_scene_t *scene)
 
 API void main_scene_process(main_scene_t *scene, float delta)
 {
-  (void) scene; (void) delta;
+  if (IsKeyPressed(KEY_ESCAPE)) {
+    app_set_scene(SCENE_MENU);
+    return;
+  }
   game_process(scene->game, delta);
 }
 

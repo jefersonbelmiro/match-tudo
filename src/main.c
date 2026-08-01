@@ -14,6 +14,7 @@ int main()
   SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST | FLAG_WINDOW_RESIZABLE);
   SetTraceLogLevel(LOG_WARNING);
   InitWindow(800, 600, "match-puzzle");
+  SetExitKey(KEY_NULL);
 
 #if HOT_RELOAD
   hot_init();
@@ -21,7 +22,7 @@ int main()
 
   app_init();
   app_start();
-  app_set_scene(SCENE_MAIN);
+  app_set_scene(SCENE_MENU);
 
   app_t *app = app_ptr();
   while (app->state != APP_EXITED) {

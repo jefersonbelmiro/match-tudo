@@ -134,26 +134,20 @@ void draw_line_dashed_thick(
   }
 }
 
-// API void draw_npatch(resource_texture_id_t id, float x, float y, float width, float height, float scale, Color tint)
-// {
-//   Texture2D texture = resource_texture(id);
-//   int border;
-//   switch (id) {
-//     case RESOURCE_TEXTURE_NPATCH_32X32_1: border = 16; break;
-//     case RESOURCE_TEXTURE_NPATCH_128X128_1:
-//     case RESOURCE_TEXTURE_NPATCH_128X128_2: border = 32; break;
-//     default: border = 8; break;
-//   }
-//   float ox = (1.0f - scale) * width * 0.5f;
-//   float oy = (1.0f - scale) * height * 0.5f;
-//   NPatchInfo info = {
-//     .source = (Rectangle){ 0, 0, (float)texture.width, (float)texture.height },
-//     .left = border,
-//     .top = border,
-//     .right = border,
-//     .bottom = border,
-//     .layout = NPATCH_NINE_PATCH
-//   };
-//   Rectangle dest = { roundf(x + ox), roundf(y + oy), roundf(width * scale), roundf(height * scale) };
-//   DrawTextureNPatch(texture, info, dest, (Vector2){0}, 0.0f, tint);
-// }
+API void draw_npatch(resource_texture_id_t id, float x, float y, float width, float height, float scale, Color tint)
+{
+  Texture2D texture = resource_texture(id);
+  int border = 8;
+  float ox = (1.0f - scale) * width * 0.5f;
+  float oy = (1.0f - scale) * height * 0.5f;
+  NPatchInfo info = {
+    .source = (Rectangle){ 0, 0, (float)texture.width, (float)texture.height },
+    .left = border,
+    .top = border,
+    .right = border,
+    .bottom = border,
+    .layout = NPATCH_NINE_PATCH
+  };
+  Rectangle dest = { roundf(x + ox), roundf(y + oy), roundf(width * scale), roundf(height * scale) };
+  DrawTextureNPatch(texture, info, dest, (Vector2){0}, 0.0f, tint);
+}

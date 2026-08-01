@@ -3,11 +3,13 @@
 #include "core/app.h"
 #include "core/arena.h"
 #include "core/defs.h"
+#include "core/input.h"
 #include "core/resources.h"
 #include "core/timer.h"
 #include "core/tween.h"
 #include "raylib.h"
 #include "scenes/main.h"
+#include "scenes/menu.h"
 
 API app_t* app_ptr()
 {
@@ -44,7 +46,9 @@ API void app_init(void)
   app_t *app = arena_push_zero(arena, app_t, 1);
   g_app = app;
 
+  input_init(arena);
   resource_init(arena_create_sub(arena, resources_memory_size(), "resource"));
+  sound_init(arena_create_sub(arena, sound_memory_size(), "sound"));
   tween_init(arena_create_sub(arena, tween_memory_size(), "tween"));
   timer_init(arena_create_sub(arena, timer_memory_size(), "timer"));
 
@@ -65,9 +69,11 @@ API void app_fini()
 API void app_start(void)
 {
   resource_start();
+  sound_start();
 
   app_t *app = app_ptr();
   app->state = APP_RUNNING;
+
 }
 
 API void app_quit()
@@ -93,6 +99,8 @@ static bool app__scene_entering()
   switch (app->scene) {
   case SCENE_MAIN:
     return main_scene_entering(app->scene_state);
+  case SCENE_MENU:
+    return menu_scene_entering(app->scene_state);
   default: return true;
   }
 }
@@ -103,6 +111,8 @@ static bool app__scene_exiting()
   switch (app->scene) {
     case SCENE_MAIN:
       return main_scene_exiting(app->scene_state);
+    case SCENE_MENU:
+      return menu_scene_exiting(app->scene_state);
     default: return true;
   }
 }
@@ -113,6 +123,9 @@ static void app__scene_init()
   switch (app->scene) {
     case SCENE_MAIN:
       app->scene_state = main_scene_init();
+    break;
+    case SCENE_MENU:
+      app->scene_state = menu_scene_init();
     break;
     default: break;
   }
@@ -125,6 +138,9 @@ static void app__scene_process(float delta)
     case SCENE_MAIN: 
       main_scene_process(app->scene_state, delta);
     break;
+    case SCENE_MENU: 
+      menu_scene_process(app->scene_state, delta);
+    break;
     default: break;
   }
 }
@@ -135,6 +151,9 @@ static void app__scene_draw()
   switch (app->scene) {
     case SCENE_MAIN: 
       main_scene_draw(app->scene_state);
+    break;
+    case SCENE_MENU: 
+      menu_scene_draw(app->scene_state);
     break;
     default: break;
   }
@@ -147,6 +166,9 @@ static void app__scene_free()
     case SCENE_MAIN: 
       main_scene_free(app->scene_state);
     break;
+    case SCENE_MENU: 
+      menu_scene_free(app->scene_state);
+    break;
     default: break;
   }
 }
@@ -156,6 +178,9 @@ API void app__scene_sync(scene_type_t scene, sync_signal_type_t signal)
   switch (scene) {
     case SCENE_MAIN:
       main_scene_sync(app_ptr()->scene_state, signal);
+    break;
+    case SCENE_MENU:
+      menu_scene_sync(app_ptr()->scene_state, signal);
     break;
     default: break;
   }
@@ -177,9 +202,14 @@ API void app_process(float delta)
     .y = GetScreenHeight(),
   };
 
+  tween_process(delta);
+  timer_process(delta);
+  sound_process();
+  input_process();
+
   if (app->scene_next) {
     if (app->scene && app->scene_transition != SCENE_TRANSITION_EXITING) {
-      app__scene_sync(app->scene_next, SYNC_SIGNAL_ON_EXIT);
+      app__scene_sync(app->scene, SYNC_SIGNAL_ON_EXIT);
       app->scene_transition = SCENE_TRANSITION_EXITING;
     }
 
@@ -200,9 +230,6 @@ API void app_process(float delta)
     app__scene_sync(app->scene, SYNC_SIGNAL_ON_ENTER);
     app__scene_init();
   }
-
-  tween_process(delta);
-  timer_process(delta);
 
   if (app->state == APP_EXITING) {
     if (app->scene_transition != SCENE_TRANSITION_EXITING) {

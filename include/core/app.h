@@ -26,5 +26,6 @@ API arena_t* app_scene_arena();
 API void app_quit();
 API void app_pause(bool paused);
 API screen_size_t* app_screen_size();
+API void app_set_scene(scene_type_t type);
 
 

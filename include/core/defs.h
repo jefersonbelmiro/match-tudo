@@ -124,9 +124,8 @@ typedef enum {
 
 typedef enum {
   SCENE_NONE,
-  SCENE_MAIN_MENU,
+  SCENE_MENU,
   SCENE_MAIN,
-  SCENE_MULTIPLAYER,
   SCENE_COUNT,
 } scene_type_t;
 
