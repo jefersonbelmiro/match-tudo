@@ -137,9 +137,10 @@ API void draw_board_layer_fg(game_t *game)
   atlas_t *atlas = board->atlas;
   board_layer_t *layer = &board->layer_fg;
 
-  for (entity_id_t i = 0; i < layer->count; i++) {
-    grid_idx_t texture_idx = layer->texture_idx[i];
-    Vector2 position = layer->position[i];
+  for (entity_id_t i = layer->count; i > 0; i--) {
+    entity_id_t index = i - 1;
+    grid_idx_t texture_idx = layer->texture_idx[index];
+    Vector2 position = layer->position[index];
     draw_atlas_fliph(atlas, texture_idx, position, board->scale, 0, WHITE);
   }
 }

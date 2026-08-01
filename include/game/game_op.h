@@ -10,6 +10,7 @@
 #include "game/game.h"
 #include "game/game_draw.h"
 #include "raylib.h"
+#include <stdbool.h>
 
 API void game_create_board(game_t *game)
 {
@@ -152,8 +153,8 @@ API void game_update_input(game_t *game)
       board_layer_swap_fg(board, game->hover_id);
 
       // swap-ellastic in selected to be last layer draw index
-      board_layer_swap_bg(board, game->selected_id);
-      board_layer_swap_fg(board, game->selected_id);
+      // board_layer_swap_bg(board, game->selected_id);
+      // board_layer_swap_fg(board, game->selected_id);
 
       board_grid_snap_animated(board, game->selected_id, idx);
       board_grid_snap_animated(board, game->hover_id, game->selected_idx);
@@ -194,17 +195,26 @@ API void game_update_input(game_t *game)
   }
 }
 
+API void game_sync_matches(game_t *game, grid_idx_t idx)
+{
+  (void) game;
+  printn(" - sync match: %d", idx);
+}
+
 API void game_sync_layer_fg(game_t *game)
 {
   board_t *board = &game->board;
-  board_layer_t *layer = &board->layer_fg;
+  board_layer_t *fg = &board->layer_fg;
 
-  for (entity_id_t i = layer->count; i > 0; i--) {
-    entity_id_t id = layer->index_entity[i - 1];
+  for (entity_id_t i = fg->count; i > 0; i--) {
+    entity_id_t index = i - 1;
+    entity_id_t id = fg->index_entity[index];
     if (!tween_completed(board->entity_tween[id])) {
       continue;
     }
+    grid_idx_t idx = fg->idx[index];
     board_layer_swap_bg(board, id);
+    game_sync_matches(game, idx);
   }
 }
 
