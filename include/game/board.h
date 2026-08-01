@@ -23,8 +23,8 @@ typedef struct {
   atlas_t *atlas;
 
   entity_id_t    *cell_id; // idx -> id
-  tween_h        *cell_tween; // entity -> tween
-  board_layer_t **cell_layer; // entity -> layer
+  tween_h        *entity_tween; // entity -> tween
+  board_layer_t **entity_layer; // entity -> layer
 
   board_layer_t layer_bg;
   board_layer_t layer_fg;
@@ -67,29 +67,56 @@ API void board_layer_append(
   layer->position[index] = position;
 }
 
-API void board_layer_erase(board_layer_t *layer, entity_id_t id)
+API void board_layer_erase(board_t *board, board_layer_t *layer, entity_id_t id)
 {
   assert(id <= layer->cap);
   entity_id_t index = layer->entity_index[id];
   entity_id_t last = layer->count - 1;
   if (index != last) {
     entity_id_t last_id = layer->index_entity[last];
+    tween_h last_tween = board->entity_tween[last_id];
     layer->entity_index[last_id] = index;
     layer->index_entity[index] = last_id;
     layer->idx[index] = layer->idx[last];
     layer->texture_idx[index] = layer->texture_idx[last];
     layer->position[index] = layer->position[last];
+    if (tween_is_active(last_tween)) {
+      tween_retarget(last_tween, 0, &layer->position[index].x);
+      tween_retarget(last_tween, 1, &layer->position[index].y);
+    }
   }
   layer->count--;
 }
 
-API void board_layer_swap(board_layer_t *source, board_layer_t *target, entity_id_t id)
+API void board_layer_swap(board_t *board, board_layer_t *source, board_layer_t *target, entity_id_t id)
 {
-  if (source == target) return;
-
+  assert(source != target);
   entity_id_t source_index = source->entity_index[id];
   board_layer_append(target, id, source->idx[source_index], source->position[source_index], source->texture_idx[source_index]);
-  board_layer_erase(source, id);
+  board_layer_erase(board, source, id);
+  board->entity_layer[id] = target;
+}
+
+API void board_layer_swap_bg(board_t *board, entity_id_t id)
+{
+  board_layer_t *source = &board->layer_fg;
+  board_layer_t *target = &board->layer_bg;
+  board_layer_t *current = board->entity_layer[id];
+  if (current == target) {
+    return;
+  }
+  board_layer_swap(board, source, target, id);
+}
+
+API void board_layer_swap_fg(board_t *board, entity_id_t id)
+{
+  board_layer_t *source = &board->layer_bg;
+  board_layer_t *target = &board->layer_fg;
+  board_layer_t *current = board->entity_layer[id];
+  if (current == target) {
+    return;
+  }
+  board_layer_swap(board, source, target, id);
 }
 
 API Vector2 board_idx_to_world(board_t *board, grid_idx_t idx)
@@ -107,25 +134,25 @@ API Vector2 board_idx_to_world(board_t *board, grid_idx_t idx)
 
 API void board_grid_snap(board_t *board, entity_id_t id, grid_idx_t idx)
 {
-  board_layer_t *layer = board->cell_layer[id];
+  board_layer_t *layer = board->entity_layer[id];
   entity_id_t index = layer->entity_index[id];
   layer->position[index] = board_idx_to_world(board, idx);
 }
 
 API void board_grid_snap_animated(board_t *board, entity_id_t id, grid_idx_t target_idx)
 {
-  board_layer_t *layer = board->cell_layer[id];
+  board_layer_t *layer = board->entity_layer[id];
   entity_id_t index = layer->entity_index[id];
 
   Vector2 *position = &layer->position[index];
   Vector2 target = board_idx_to_world(board, target_idx);
 
-  tween_kill(board->cell_tween[id]);
+  tween_kill(board->entity_tween[id]);
 
   tween_h h = tween_create_parallel();
   tween_add(h, &position->x, target.x, 0.2f, ease_out_quad);
   tween_add(h, &position->y, target.y, 0.2f, ease_out_quad);
-  board->cell_tween[id] = h;
+  board->entity_tween[id] = h;
 
   layer->idx[index] = target_idx;
 }

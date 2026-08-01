@@ -71,9 +71,9 @@ API void game_create_board(game_t *game)
       },
       idx
     );
-    board->cell_layer[id] = layer_bg;
+    board->entity_layer[id] = layer_bg;
     board->cell_id[idx] = id;
-    board->cell_tween[id] = TWEEN_NONE;
+    board->entity_tween[id] = TWEEN_NONE;
   }
 
   // fisher-yates/knuth shuffle
@@ -143,17 +143,16 @@ API void game_update_input(game_t *game)
   if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && game->selected_id != ENTITY_NONE) {
 
     if (game->hover_id != ENTITY_NONE && game->hover_id != game->selected_id && 
-        !tween_is_active(board->cell_tween[game->hover_id])
+        !tween_is_active(board->entity_tween[game->hover_id])
     ) {
       board->cell_id[game->selected_idx] = game->hover_id;
       board->cell_id[idx] = game->selected_id;
 
-      board_layer_swap(&board->layer_bg, &board->layer_fg, game->hover_id);
-      board->cell_layer[game->hover_id] = &board->layer_fg;
+      board_layer_swap_fg(board, game->hover_id);
 
       // swap-ellastic in selected to be last layer draw index
-      board_layer_swap(&board->layer_fg, &board->layer_bg, game->selected_id);
-      board_layer_swap(&board->layer_bg, &board->layer_fg, game->selected_id);
+      board_layer_swap_bg(board, game->selected_id);
+      board_layer_swap_fg(board, game->selected_id);
 
       board_grid_snap_animated(board, game->selected_id, idx);
       board_grid_snap_animated(board, game->hover_id, game->selected_idx);
@@ -166,13 +165,12 @@ API void game_update_input(game_t *game)
   }
 
   if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && game->hover_id != ENTITY_NONE && 
-    !tween_is_active(board->cell_tween[game->hover_id]) &&
-    board->cell_layer[game->hover_id] == &board->layer_bg
+    !tween_is_active(board->entity_tween[game->hover_id]) &&
+    board->entity_layer[game->hover_id] == &board->layer_bg
   ) {
-    board_layer_swap(&board->layer_bg, &board->layer_fg, game->hover_id);
-    board->cell_layer[game->hover_id] = &board->layer_fg;
+    board_layer_swap_fg(board, game->hover_id);
 
-    board_layer_t *layer = board->cell_layer[game->hover_id];
+    board_layer_t *layer = board->entity_layer[game->hover_id];
     entity_id_t cell_index = layer->entity_index[game->hover_id];
     Vector2 cell_position = layer->position[cell_index];
 
@@ -185,7 +183,7 @@ API void game_update_input(game_t *game)
   }
 
   if (game->selected_id != ENTITY_NONE) {
-    board_layer_t *selected_layer = board->cell_layer[game->selected_id];
+    board_layer_t *selected_layer = board->entity_layer[game->selected_id];
     entity_id_t selected_index = selected_layer->entity_index[game->selected_id];
     Vector2 *position = &selected_layer->position[selected_index];
     *position = (Vector2){ 
@@ -202,27 +200,10 @@ API void game_sync_layer_fg(game_t *game)
 
   for (entity_id_t i = layer->count; i > 0; i--) {
     entity_id_t id = layer->index_entity[i - 1];
-    if (!tween_completed(board->cell_tween[id])) {
+    if (!tween_completed(board->entity_tween[id])) {
       continue;
     }
-
-    entity_id_t idx = layer->entity_index[id];
-    entity_id_t last = layer->count - 1;
-
-    entity_id_t last_id = ENTITY_NONE;
-    tween_h last_tween = TWEEN_NONE;
-    if (idx != last) {
-      last_id = layer->index_entity[last];
-      last_tween = board->cell_tween[last_id];
-    }
-
-    board_layer_swap(&board->layer_fg, &board->layer_bg, id);
-    board->cell_layer[id] = &board->layer_bg;
-
-    if (idx != last && tween_is_active(last_tween)) {
-      tween_retarget(last_tween, 0, &layer->position[idx].x);
-      tween_retarget(last_tween, 1, &layer->position[idx].y);
-    }
+    board_layer_swap_bg(board, id);
   }
 }
 
@@ -244,8 +225,8 @@ API void game_init(game_t *game, game_config_t cfg, arena_t *arena)
   game->board = (board_t){
     .atlas = arena_push(arena, atlas_t, 1),
     .cell_id = arena_push(arena, entity_id_t, rows * cols),
-    .cell_tween = arena_push(arena, tween_h, rows * cols),
-    .cell_layer = arena_push(arena, board_layer_t*, rows * cols),
+    .entity_tween = arena_push(arena, tween_h, rows * cols),
+    .entity_layer = arena_push(arena, board_layer_t*, rows * cols),
     .position = {0, 0},
     .size = {width, height},
     .cell_size = cfg.cell_size,

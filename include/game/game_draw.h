@@ -10,6 +10,9 @@
 
 API void draw_border()
 {
+  if (IsWindowFullscreen()) {
+    return;
+  }
   DrawRectangleLinesEx(
     (Rectangle){0, 0, GetScreenWidth(), GetScreenHeight()}, 
     4, DARKGRAY
@@ -47,7 +50,7 @@ API void draw_board_cell_hover(game_t *game)
     return;
   }
   board_t *board = &game->board;
-  board_layer_t *layer = board->cell_layer[game->hover_id];
+  board_layer_t *layer = board->entity_layer[game->hover_id];
   entity_id_t index = layer->entity_index[game->hover_id];
   Vector2 position = layer->position[index];
   draw_cell_state(game, position, CELL_HOVERED);
@@ -60,7 +63,7 @@ API void draw_board_cell_selected(game_t *game)
     return;
   }
   board_t *board = &game->board;
-  board_layer_t *layer = board->cell_layer[game->selected_id];
+  board_layer_t *layer = board->entity_layer[game->selected_id];
   entity_id_t index = layer->entity_index[game->selected_id];
   Vector2 position = layer->position[index];
   draw_cell_state(game, position, CELL_SELECTED);
