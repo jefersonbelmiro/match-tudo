@@ -12,7 +12,6 @@ typedef struct {
   entity_id_t *index_entity;
 
   grid_idx_t *idx;
-  grid_idx_t *target_idx;
   grid_idx_t *texture_idx;
   Vector2    *position;
 
@@ -46,7 +45,6 @@ API void board_layer_init(board_layer_t *layer, arena_t *arena, entity_id_t cap)
   layer->entity_index = arena_push(arena, entity_id_t, cap);
   layer->index_entity = arena_push(arena, entity_id_t, cap);
   layer->idx = arena_push(arena, grid_idx_t, cap);
-  layer->target_idx = arena_push(arena, grid_idx_t, cap);
   layer->texture_idx = arena_push(arena, grid_idx_t, cap);
   layer->position = arena_push(arena, Vector2, cap);
   layer->count = 0;
@@ -65,7 +63,6 @@ API void board_layer_append(
   layer->entity_index[id] = index;
   layer->index_entity[index] = id;
   layer->idx[index] = idx;
-  layer->target_idx[index] = IDX_NONE;
   layer->texture_idx[index] = texture_idx;
   layer->position[index] = position;
 }
@@ -80,7 +77,6 @@ API void board_layer_erase(board_layer_t *layer, entity_id_t id)
     layer->entity_index[last_id] = index;
     layer->index_entity[index] = last_id;
     layer->idx[index] = layer->idx[last];
-    layer->target_idx[index] = layer->target_idx[last];
     layer->texture_idx[index] = layer->texture_idx[last];
     layer->position[index] = layer->position[last];
   }
@@ -131,7 +127,7 @@ API void board_grid_snap_animated(board_t *board, entity_id_t id, grid_idx_t tar
   tween_add(h, &position->y, target.y, 0.2f, ease_out_quad);
   board->cell_tween[id] = h;
 
-  layer->target_idx[index] = target_idx;
+  layer->idx[index] = target_idx;
 }
 
 API void board_sync_size(board_t *board)
@@ -142,7 +138,6 @@ API void board_sync_size(board_t *board)
   float left = screen->x * 0.5 - width  * 0.5;
   float top  = screen->y * 0.5 - height * 0.5;
   board->position = (Vector2){ left, top };
-
   {
     board_layer_t *layer = &board->layer_bg;
     for (entity_id_t i = 0; i < layer->count; i++) {
@@ -157,6 +152,5 @@ API void board_sync_size(board_t *board)
       layer->position[i] = board_idx_to_world(board, idx);
     }
   }
-
 }
 

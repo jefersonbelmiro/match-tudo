@@ -41,8 +41,6 @@ API bool main_scene_entering(UNUSED main_scene_t *scene)
 
 API void main_scene_sync(main_scene_t *scene, sync_signal_type_t signal)
 {
-  (void) scene; (void) signal;
-  // game_process(delta);
   switch (signal) {
     case SYNC_SIGNAL_WINDOW_RESIZED:
       game_sync_size(scene->game);
