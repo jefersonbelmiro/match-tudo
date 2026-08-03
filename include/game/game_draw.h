@@ -87,34 +87,70 @@ API void draw_board_grid(game_t *game)
   float line_tick = GRID_LINE_TICK;
   Color line_color = COLOR_GRID_LINE;
 
-  for (u16 col = 0; col <= cols; col++) {
-    Vector2 start = {
-      col * cell_size + margin_left, 
-      margin_top
-    };
-    Vector2 end = {
-      col * cell_size + margin_left,
-      height + margin_top
-    };
-    if (col == 0) {
-      start.y -= line_tick * 0.5;
-      end.y += line_tick * 0.5;
-    } if (col == cols) {
-      start.y -= line_tick * 0.5;
-      end.y += line_tick * 0.5;
+  // internal vertical edges, skipped between two matched cells
+  for (u16 row = 0; row < rows; row++) {
+    for (u16 col = 0; col + 1 < cols; col++) {
+      grid_idx_t left_idx = row * cols + col;
+      if (board->cell_matches[left_idx] && board->cell_matches[left_idx + 1]) {
+        continue;
+      }
+      float x = margin_left + cell_size * (col + 1);
+      DrawLineEx(
+        (Vector2){ x, margin_top + cell_size * row },
+        (Vector2){ x, margin_top + cell_size * (row + 1) },
+        line_tick, line_color
+      );
     }
-    DrawLineEx(start, end, line_tick, line_color);
   }
-  for (u16 row = 0; row <= rows; row++) {
-    Vector2 start = {
-      margin_left,
-      row * cell_size + margin_top
+
+  // internal horizontal edges, skipped between two matched cells
+  for (u16 row = 0; row + 1 < rows; row++) {
+    for (u16 col = 0; col < cols; col++) {
+      grid_idx_t top_idx = row * cols + col;
+      if (board->cell_matches[top_idx] && board->cell_matches[top_idx + cols]) {
+        continue;
+      }
+      float y = margin_top + cell_size * (row + 1);
+      DrawLineEx(
+        (Vector2){ margin_left + cell_size * col, y },
+        (Vector2){ margin_left + cell_size * (col + 1), y },
+        line_tick, line_color
+      );
+    }
+  }
+
+  // outer frame
+  DrawRectangleLinesEx(
+    (Rectangle){ margin_left, margin_top, width, height },
+    line_tick, line_color
+  );
+}
+
+API void draw_board_match_flash(game_t *game)
+{
+  board_t *board = &game->board;
+
+  u16 cols = board->size.x / board->cell_size;
+  u16 rows = board->size.y / board->cell_size;
+  u16 cell_size = board->cell_size * board->scale;
+
+  float margin_left = board->position.x;
+  float margin_top  = board->position.y;
+
+  for (u16 idx = 0; idx < rows * cols; idx++) {
+    float flash = board->cell_flash[idx];
+    if (flash <= 0.0f) {
+      continue;
+    }
+    u16 row = idx / cols;
+    u16 col = idx % cols;
+    Rectangle rec = {
+      margin_left + cell_size * col,
+      margin_top + cell_size * row,
+      cell_size,
+      cell_size
     };
-    Vector2 end = {
-      width + margin_left,
-      cell_size * row + margin_top
-    };
-    DrawLineEx(start, end, line_tick, line_color);
+    DrawRectangleRec(rec, ColorAlpha(WHITE, flash * 0.5f));
   }
 }
 
@@ -148,6 +184,7 @@ API void draw_board_layer_fg(game_t *game)
 API void draw_board(game_t *game)
 {
   draw_board_layer_bg(game);
+  draw_board_match_flash(game);
   draw_board_grid(game);
   draw_board_cell_hover(game);
   draw_board_layer_fg(game);

@@ -135,12 +135,13 @@ API void game_update_input(game_t *game)
     game->hover_id = board->cell_entity[idx];
   }
 
-  // DrawText(TextFormat(
-  //   "mouse   idx: %d\n"
-  //   "hover_id    id: %d\n"
-  //   "selected_id id: %d\n",
-  //   idx, game->hover_id, game->selected_id
-  // ), 10, 40, 20, LIME);
+  DrawText(TextFormat("mouse   idx: %d\n", idx),                10, 40, 20, LIME);
+  DrawText(TextFormat("hover    id: %d\n", game->hover_id),     10, 60, 20, LIME);
+  DrawText(TextFormat("selected id: %d\n", game->selected_id),  10, 80, 20, LIME);
+  if (game->hover_id != ENTITY_NONE)
+    DrawText(
+        TextFormat("texture idx: %d\n", board->layer_bg.texture_idx[board->layer_bg.entity_index[game->hover_id]]),
+        10, 100, 20, LIME);
 
   if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && game->selected_id != ENTITY_NONE) {
 
@@ -151,10 +152,6 @@ API void game_update_input(game_t *game)
       board->cell_entity[idx] = game->selected_id;
 
       board_layer_swap_fg(board, game->hover_id);
-
-      // swap-ellastic in selected to be last layer draw index
-      // board_layer_swap_bg(board, game->selected_id);
-      // board_layer_swap_fg(board, game->selected_id);
 
       board_grid_snap_animated(board, game->selected_id, idx);
       board_grid_snap_animated(board, game->hover_id, game->selected_idx);
@@ -195,10 +192,87 @@ API void game_update_input(game_t *game)
   }
 }
 
-API void game_sync_matches(game_t *game, grid_idx_t idx)
+#define MATCH_FLASH_DURATION 0.4f
+#define MATCH_MIN_RUN        2
+
+API void game_cell_flash(board_t *board, grid_idx_t idx)
 {
-  (void) game;
-  printn(" - sync match: %d", idx);
+  board->cell_flash[idx] = 1.0f;
+  tween_f32_always(&board->cell_flash[idx], 0.0f, MATCH_FLASH_DURATION, ease_out_cubic);
+}
+
+API void game_find_matches(board_t *board, grid_idx_t idx)
+{
+  printn("game_find_matches: %d visited: %d", idx, board->cell_visited[idx]);
+  if (board->cell_visited[idx]) {
+    return;
+  };
+  u16 cols = board_cols(board);
+  u16 rows = board_rows(board);
+  u16 row = idx / cols;
+  u16 col = idx % cols;
+  bool found = false;
+
+  printn(" - find match idx: %d col: %d row: %d", idx, col, row);
+
+  // horizontal
+  if (col > 0) {
+    u16 left = col - 1;
+    grid_idx_t left_idx = board_idx_at(board, row, left);
+    bool match = board_cells_match_left(board, idx, left_idx);
+    printn(" - left match: %d", match);
+    board->cell_matches[left_idx] = match;
+    board->cell_visited[left_idx] = true;
+    if (match) {
+      found = true;
+      game_cell_flash(board, left_idx);
+      game_find_matches(board, left_idx);
+    }
+  }
+  if (col + 1 < cols) {
+    u16 right = col + 1;
+    grid_idx_t right_idx = board_idx_at(board, row, right);
+    bool match = board_cells_match_right(board, idx, right_idx);
+    board->cell_matches[right_idx] = match;
+    board->cell_visited[right_idx] = true;
+    if (match) {
+      found = true;
+      game_cell_flash(board, right_idx);
+      game_find_matches(board, right_idx);
+    }
+  }
+
+  // vertical
+  if (row > 0) {
+    u16 top = row - 1;
+    grid_idx_t top_idx = board_idx_at(board, top, col);
+    bool match = board_cells_match_top(board, idx, top_idx);
+    board->cell_matches[top_idx] = match;
+    board->cell_visited[top_idx] = true;
+    if (match) {
+      found = true;
+      game_cell_flash(board, top_idx);
+      game_find_matches(board, top_idx);
+    }
+  }
+  if (row + 1 < rows) {
+    u16 bottom = row + 1;
+    grid_idx_t bottom_idx = board_idx_at(board, bottom, col);
+    bool match = board_cells_match_bottom(board, idx, bottom_idx);
+    board->cell_matches[bottom_idx] = match;
+    board->cell_visited[bottom_idx] = true;
+    if (match) {
+      found = true;
+      game_cell_flash(board, bottom_idx);
+      game_find_matches(board, bottom_idx);
+    }
+  }
+
+  board->cell_visited[idx] = true;
+  board->cell_matches[idx] = found;
+  if (found) {
+    game_cell_flash(board, idx);
+  }
 }
 
 API void game_sync_layer_fg(game_t *game)
@@ -206,16 +280,27 @@ API void game_sync_layer_fg(game_t *game)
   board_t *board = &game->board;
   board_layer_t *fg = &board->layer_fg;
 
+  grid_idx_t landed[2];
+  u16 landed_count = 0;
+
   for (entity_id_t i = fg->count; i > 0; i--) {
     entity_id_t index = i - 1;
     entity_id_t id = fg->index_entity[index];
     if (!tween_completed(board->entity_tween[id])) {
       continue;
     }
-    grid_idx_t idx = fg->idx[index];
     board_layer_swap_bg(board, id);
-    game_sync_matches(game, idx);
+    landed[landed_count++] = fg->idx[index];
   }
+
+  if (landed_count > 1) {
+    mem_set_zero(board->cell_visited, sizeof(bool) * board_grid_size(board));
+    mem_set_zero(board->cell_matches, sizeof(bool) * board_grid_size(board));
+    for (u16 i = 0; i < landed_count; i++) {
+      game_find_matches(board, landed[i]);
+    }
+  }
+
 }
 
 API void game_init(game_t *game, game_config_t cfg, arena_t *arena)
@@ -238,6 +323,9 @@ API void game_init(game_t *game, game_config_t cfg, arena_t *arena)
     .cell_entity = arena_push(arena, entity_id_t, rows * cols),
     .entity_tween = arena_push(arena, tween_h, rows * cols),
     .entity_layer = arena_push(arena, board_layer_t*, rows * cols),
+    .cell_matches = arena_push(arena, bool, rows * cols),
+    .cell_visited = arena_push(arena, bool, rows * cols),
+    .cell_flash = arena_push(arena, float, rows * cols),
     .position = {0, 0},
     .size = {width, height},
     .cell_size = cfg.cell_size,
@@ -246,6 +334,10 @@ API void game_init(game_t *game, game_config_t cfg, arena_t *arena)
 
   board_layer_init(&game->board.layer_bg, arena, rows * cols);
   board_layer_init(&game->board.layer_fg, arena, rows * cols);
+
+  mem_set_zero(game->board.cell_matches, rows * cols);
+  mem_set_zero(game->board.cell_visited, rows * cols);
+  mem_set_zero(game->board.cell_flash, rows * cols * sizeof(float));
 
   board_sync_size(&game->board);
   game_create_board(game);

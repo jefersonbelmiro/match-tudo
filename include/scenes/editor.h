@@ -49,10 +49,14 @@ API void editor_scene_free(editor_scene_t *scene)
 
 API void editor_scene_process(editor_scene_t *scene, float delta)
 {
-  (void) scene; (void) delta;
+  if (IsKeyPressed(KEY_ESCAPE)) {
+    app_set_scene(SCENE_MENU);
+    return;
+  }
+  editor_process(scene->editor, delta);
 }
 
 API void editor_scene_draw(editor_scene_t *scene)
 {
-  (void) scene;
+  editor_draw(scene->editor);
 }

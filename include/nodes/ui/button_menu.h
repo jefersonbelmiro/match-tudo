@@ -46,7 +46,7 @@ API void button_menu_layout(button_menu_t *s, float anchor_x, float anchor_y)
   float gap    = s->cfg.gap;
   float total_h = btn_h * s->btn_count + gap * (s->btn_count - 1);
   float x = anchor_x - btn_w * 0.5f;
-  float y = anchor_y - total_h;
+  float y = anchor_y - total_h * 0.5;
 
   for (u8 i = 0; i < s->btn_count; i++) {
     s->buttons[i].position = (Vector2){ x, y + i * (btn_h + gap) };

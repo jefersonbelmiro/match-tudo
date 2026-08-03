@@ -16,6 +16,12 @@ static void main_menu_on_play(void *l, u8 t, const void *p)
   app_set_scene(SCENE_MAIN);
 }
 
+static void main_menu_on_editor(void *l, u8 t, const void *p) 
+{
+  (void)l; (void)t; (void)p;
+  app_set_scene(SCENE_EDITOR);
+}
+
 static void main_menu_on_exit(void *l, u8 t, const void *p) 
 {
   (void)l; (void)t; (void)p;
@@ -31,6 +37,7 @@ API menu_scene_t* menu_scene_init()
 
   button_menu_def_t defs[] = {
     { "PLAY", { main_menu_on_play, NULL } },
+    { "EDITOR", { main_menu_on_editor, NULL } },
     { "EXIT", { main_menu_on_exit, NULL } },
   };
   button_menu_cfg_t cfg = { .btn_w = 140, .btn_h = 42.0f, .gap = 12 };

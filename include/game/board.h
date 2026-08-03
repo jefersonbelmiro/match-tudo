@@ -6,6 +6,7 @@
 #include "core/resources.h"
 #include "core/tween.h"
 #include "raylib.h"
+#include <stdbool.h>
 
 typedef struct {
   entity_id_t *entity_index;
@@ -25,6 +26,10 @@ typedef struct {
   entity_id_t    *cell_entity;  // grid idx -> entity
   tween_h        *entity_tween; // entity   -> tween
   board_layer_t **entity_layer; // entity   -> layer
+
+  bool        *cell_matches; // grid idx -> bool
+  bool        *cell_visited; // grid idx -> bool 
+  float       *cell_flash;   // grid idx -> alpha (flash tween target)
 
   board_layer_t layer_bg;
   board_layer_t layer_fg;
@@ -155,6 +160,86 @@ API void board_grid_snap_animated(board_t *board, entity_id_t id, grid_idx_t tar
   board->entity_tween[id] = h;
 
   layer->idx[index] = target_idx;
+}
+
+API u16 board_cols(board_t *board)
+{
+  return board->size.x / board->cell_size;
+}
+
+API u16 board_rows(board_t *board)
+{
+  return board->size.y / board->cell_size;
+}
+
+API u16 board_grid_size(board_t *board)
+{
+  return board_rows(board) * board_cols(board);
+}
+
+API grid_idx_t board_idx_at(board_t *board, u16 row, u16 col)
+{
+  return row * board_cols(board) + col;
+}
+
+API grid_idx_t board_cell_texture_bg(board_t *board, grid_idx_t idx)
+{
+  board_layer_t *bg = &board->layer_bg;
+  entity_id_t id = board->cell_entity[idx];
+  return bg->texture_idx[bg->entity_index[id]];
+}
+
+API bool board_cells_match_dir(board_t *board, grid_idx_t source_idx, grid_idx_t target_idx, u16 diff_inc)
+{
+  board_layer_t *bg = &board->layer_bg;
+  entity_id_t source_id = board->cell_entity[source_idx];
+  grid_idx_t source_texture_idx = bg->texture_idx[bg->entity_index[source_id]];
+
+  entity_id_t target_id = board->cell_entity[target_idx];
+  grid_idx_t target_texture_idx = bg->texture_idx[bg->entity_index[target_id]];
+
+  return source_texture_idx + diff_inc == target_texture_idx;
+}
+
+API bool board_cells_match_left(board_t *board, grid_idx_t source_idx, grid_idx_t target_idx)
+{
+  return board_cells_match_dir(board, source_idx, target_idx, -1);
+}
+
+API bool board_cells_match_right(board_t *board, grid_idx_t source_idx, grid_idx_t target_idx)
+{
+  return board_cells_match_dir(board, source_idx, target_idx, +1);
+}
+
+API bool board_cells_match_bottom(board_t *board, grid_idx_t source_idx, grid_idx_t target_idx)
+{
+  return board_cells_match_dir(board, source_idx, target_idx, board_cols(board));
+}
+
+API bool board_cells_match_top(board_t *board, grid_idx_t source_idx, grid_idx_t target_idx)
+{
+  return board_cells_match_dir(board, source_idx, target_idx, -board_cols(board));
+}
+
+// two adjacent cells match when their texture diff equals the atlas step:
+//   horizontal neighbors (diff == 1) -> texture diff 1
+//   vertical neighbors (diff == cols) -> texture diff cols
+API bool board_cells_match(board_t *board, grid_idx_t idxA, grid_idx_t idxB)
+{
+  u16 cols = board_cols(board);
+  u16 diff = (idxA > idxB) ? idxA - idxB : idxB - idxA;
+  u16 step;
+  if (diff == 1) {
+    step = 1;
+  } else if (diff == cols) {
+    step = cols;
+  } else {
+    return false;
+  }
+  grid_idx_t texA = board_cell_texture_bg(board, idxA);
+  grid_idx_t texB = board_cell_texture_bg(board, idxB);
+  u16 tex_diff = (texA > texB) ? texA - texB : texB - texA;
+  return tex_diff == step;
 }
 
 API void board_sync_size(board_t *board)

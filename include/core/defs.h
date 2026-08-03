@@ -126,6 +126,7 @@ typedef enum {
   SCENE_NONE,
   SCENE_MENU,
   SCENE_MAIN,
+  SCENE_EDITOR,
   SCENE_COUNT,
 } scene_type_t;
 

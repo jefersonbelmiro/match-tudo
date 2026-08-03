@@ -8,6 +8,7 @@
 #include "core/timer.h"
 #include "core/tween.h"
 #include "raylib.h"
+#include "scenes/editor.h"
 #include "scenes/main.h"
 #include "scenes/menu.h"
 
@@ -101,6 +102,8 @@ static bool app__scene_entering()
     return main_scene_entering(app->scene_state);
   case SCENE_MENU:
     return menu_scene_entering(app->scene_state);
+  case SCENE_EDITOR:
+    return editor_scene_entering(app->scene_state);
   default: return true;
   }
 }
@@ -113,6 +116,8 @@ static bool app__scene_exiting()
       return main_scene_exiting(app->scene_state);
     case SCENE_MENU:
       return menu_scene_exiting(app->scene_state);
+    case SCENE_EDITOR:
+      return editor_scene_exiting(app->scene_state);
     default: return true;
   }
 }
@@ -126,6 +131,9 @@ static void app__scene_init()
     break;
     case SCENE_MENU:
       app->scene_state = menu_scene_init();
+    break;
+    case SCENE_EDITOR:
+      app->scene_state = editor_scene_init();
     break;
     default: break;
   }
@@ -141,6 +149,9 @@ static void app__scene_process(float delta)
     case SCENE_MENU: 
       menu_scene_process(app->scene_state, delta);
     break;
+    case SCENE_EDITOR: 
+      editor_scene_process(app->scene_state, delta);
+    break;
     default: break;
   }
 }
@@ -154,6 +165,9 @@ static void app__scene_draw()
     break;
     case SCENE_MENU: 
       menu_scene_draw(app->scene_state);
+    break;
+    case SCENE_EDITOR: 
+      editor_scene_draw(app->scene_state);
     break;
     default: break;
   }
@@ -169,6 +183,9 @@ static void app__scene_free()
     case SCENE_MENU: 
       menu_scene_free(app->scene_state);
     break;
+    case SCENE_EDITOR: 
+      editor_scene_free(app->scene_state);
+    break;
     default: break;
   }
 }
@@ -181,6 +198,9 @@ API void app__scene_sync(scene_type_t scene, sync_signal_type_t signal)
     break;
     case SCENE_MENU:
       menu_scene_sync(app_ptr()->scene_state, signal);
+    break;
+    case SCENE_EDITOR:
+      editor_scene_sync(app_ptr()->scene_state, signal);
     break;
     default: break;
   }

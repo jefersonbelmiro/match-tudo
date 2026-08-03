@@ -20,4 +20,3 @@ typedef struct {
   grid_idx_t    selected_idx;
   entity_id_t   hover_id;
 } game_t;
-
