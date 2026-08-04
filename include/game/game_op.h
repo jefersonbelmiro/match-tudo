@@ -201,76 +201,48 @@ API void game_cell_flash(board_t *board, grid_idx_t idx)
   tween_f32_always(&board->cell_flash[idx], 0.0f, MATCH_FLASH_DURATION, ease_out_cubic);
 }
 
-API void game_find_matches(board_t *board, grid_idx_t idx)
+API void game_find_matches(board_t *board, grid_idx_t idx, bool flash)
 {
-  printn("game_find_matches: %d visited: %d", idx, board->cell_visited[idx]);
   if (board->cell_visited[idx]) {
     return;
-  };
+  }
+  board->cell_visited[idx] = true;
+
   u16 cols = board_cols(board);
   u16 rows = board_rows(board);
   u16 row = idx / cols;
   u16 col = idx % cols;
   bool found = false;
 
-  printn(" - find match idx: %d col: %d row: %d", idx, col, row);
-
   // horizontal
-  if (col > 0) {
-    u16 left = col - 1;
-    grid_idx_t left_idx = board_idx_at(board, row, left);
-    bool match = board_cells_match_left(board, idx, left_idx);
-    printn(" - left match: %d", match);
-    board->cell_matches[left_idx] = match;
-    board->cell_visited[left_idx] = true;
-    if (match) {
-      found = true;
-      game_cell_flash(board, left_idx);
-      game_find_matches(board, left_idx);
-    }
+  if (col > 0 && board_cells_match_left(board, idx, idx - 1)) {
+    board->cell_matches[idx] = true;
+    board->cell_matches[idx - 1] = true;
+    found = true;
+    game_find_matches(board, idx - 1, flash);
   }
-  if (col + 1 < cols) {
-    u16 right = col + 1;
-    grid_idx_t right_idx = board_idx_at(board, row, right);
-    bool match = board_cells_match_right(board, idx, right_idx);
-    board->cell_matches[right_idx] = match;
-    board->cell_visited[right_idx] = true;
-    if (match) {
-      found = true;
-      game_cell_flash(board, right_idx);
-      game_find_matches(board, right_idx);
-    }
+  if (col + 1 < cols && board_cells_match_right(board, idx, idx + 1)) {
+    board->cell_matches[idx] = true;
+    board->cell_matches[idx + 1] = true;
+    found = true;
+    game_find_matches(board, idx + 1, flash);
   }
 
   // vertical
-  if (row > 0) {
-    u16 top = row - 1;
-    grid_idx_t top_idx = board_idx_at(board, top, col);
-    bool match = board_cells_match_top(board, idx, top_idx);
-    board->cell_matches[top_idx] = match;
-    board->cell_visited[top_idx] = true;
-    if (match) {
-      found = true;
-      game_cell_flash(board, top_idx);
-      game_find_matches(board, top_idx);
-    }
+  if (row > 0 && board_cells_match_top(board, idx, idx - cols)) {
+    board->cell_matches[idx] = true;
+    board->cell_matches[idx - cols] = true;
+    found = true;
+    game_find_matches(board, idx - cols, flash);
   }
-  if (row + 1 < rows) {
-    u16 bottom = row + 1;
-    grid_idx_t bottom_idx = board_idx_at(board, bottom, col);
-    bool match = board_cells_match_bottom(board, idx, bottom_idx);
-    board->cell_matches[bottom_idx] = match;
-    board->cell_visited[bottom_idx] = true;
-    if (match) {
-      found = true;
-      game_cell_flash(board, bottom_idx);
-      game_find_matches(board, bottom_idx);
-    }
+  if (row + 1 < rows && board_cells_match_bottom(board, idx, idx + cols)) {
+    board->cell_matches[idx] = true;
+    board->cell_matches[idx + cols] = true;
+    found = true;
+    game_find_matches(board, idx + cols, flash);
   }
 
-  board->cell_visited[idx] = true;
-  board->cell_matches[idx] = found;
-  if (found) {
+  if (found && flash) {
     game_cell_flash(board, idx);
   }
 }
@@ -293,11 +265,16 @@ API void game_sync_layer_fg(game_t *game)
     landed[landed_count++] = fg->idx[index];
   }
 
-  if (landed_count > 1) {
-    mem_set_zero(board->cell_visited, sizeof(bool) * board_grid_size(board));
+  if (landed_count > 0) {
     mem_set_zero(board->cell_matches, sizeof(bool) * board_grid_size(board));
+    mem_set_zero(board->cell_visited, sizeof(bool) * board_grid_size(board));
+    for (grid_idx_t i = 0; i < board_grid_size(board); i++) {
+      game_find_matches(board, i, false);
+    }
+
+    mem_set_zero(board->cell_visited, sizeof(bool) * board_grid_size(board));
     for (u16 i = 0; i < landed_count; i++) {
-      game_find_matches(board, landed[i]);
+      game_find_matches(board, landed[i], true);
     }
   }
 

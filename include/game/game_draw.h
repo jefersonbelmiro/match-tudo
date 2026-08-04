@@ -85,7 +85,7 @@ API void draw_board_grid(game_t *game)
   float margin_top  = board->position.y;
 
   float line_tick = GRID_LINE_TICK;
-  Color line_color = COLOR_GRID_LINE;
+  Color line_color = RED;
 
   // internal vertical edges, skipped between two matched cells
   for (u16 row = 0; row < rows; row++) {
