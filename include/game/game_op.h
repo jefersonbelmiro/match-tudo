@@ -149,6 +149,12 @@ API void game_update_input(game_t *game)
       board_grid_snap_animated(board, game->hover_id, game->selected_idx);
 
       board_compute_edges(&game->board);
+
+      printn("match count: %d/%d", board_match_count(&game->board), board_grid_size(&game->board));
+      if (board_match_count(&game->board) == board_grid_size(&game->board)) {
+        printn("GAME COMPLETED!");
+      }
+
     } else {
       board_grid_snap_animated(board, game->selected_id, game->selected_idx);
     }
@@ -185,8 +191,6 @@ API void game_update_input(game_t *game)
     };
   }
 }
-
-#define MATCH_FLASH_DURATION 0.4f
 
 API void game_cell_flash(board_t *board, grid_idx_t idx)
 {
@@ -232,7 +236,7 @@ API void game_sync_layer_fg(game_t *game)
     landed[landed_count++] = fg->idx[index];
   }
 
-  if (landed_count > 0) {
+  if (landed_count > 1) {
     mem_set_zero(board->cell_visited, sizeof(bool) * board_grid_size(board));
     for (u16 i = 0; i < landed_count; i++) {
       game_flash_matches(board, landed[i]);
@@ -244,37 +248,12 @@ API void game_init(game_t *game, game_config_t cfg, arena_t *arena)
 {
   mem_set_zero(game, sizeof(*game));
 
-  u16 width = m_step(cfg.view_port.x, cfg.cell_size);
-  u16 height = m_step(cfg.view_port.y, cfg.cell_size);
-  u16 cell_size = cfg.cell_size;
-  u16 cols = width / cell_size;
-  u16 rows = height / cell_size;
-
   game->arena  = arena;
   game->config = cfg;
   game->hover_id = ENTITY_NONE;
   game->selected_id = ENTITY_NONE;
   game->selected_idx = IDX_NONE;
-  game->board = (board_t){
-    .atlas = arena_push(arena, atlas_t, 1),
-    .cell_entity = arena_push(arena, entity_id_t, rows * cols),
-    .entity_tween = arena_push(arena, tween_h, rows * cols),
-    .entity_layer = arena_push(arena, board_layer_t*, rows * cols),
-    .cell_visited = arena_push(arena, bool, rows * cols),
-    .cell_flash = arena_push(arena, float, rows * cols),
-    .cell_edges = arena_push(arena, u8, rows * cols),
-    .position = {0, 0},
-    .size = {width, height},
-    .cell_size = cfg.cell_size,
-    .scale = 1.0,
-  };
-
-  board_layer_init(&game->board.layer_bg, arena, rows * cols);
-  board_layer_init(&game->board.layer_fg, arena, rows * cols);
-
-  mem_set_zero(game->board.cell_visited, rows * cols);
-  mem_set_zero(game->board.cell_flash, rows * cols * sizeof(float));
-  mem_set_zero(game->board.cell_edges, rows * cols);
+  board_init(&game->board, cfg.view_port, cfg.cell_size, arena);
 
   board_sync_size(&game->board);
   game_create_board(game);

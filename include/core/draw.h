@@ -6,7 +6,7 @@
 #include "raymath.h"
 
 API void draw_atlas(atlas_t *atlas, u32 idx, Vector2 pos, float scale,
-                              float rotation, Color tint) 
+                    float rotation, Color tint) 
 {
   u32 cols = atlas->texture.width / atlas->cell_size.x;
   u32 col  = idx % cols;
@@ -25,14 +25,42 @@ API void draw_atlas(atlas_t *atlas, u32 idx, Vector2 pos, float scale,
   DrawTexturePro(atlas->texture, source, dest, origin, rotation, tint);
 }
 
-API void draw_atlas_fliph(atlas_t *atlas, u32 idx, Vector2 pos, float scale,
-                              float rotation, Color tint) 
+API void draw_atlas_region(atlas_t *atlas, u32 idx, Rectangle region, Vector2 pos, float scale,
+                    float rotation, Color tint) 
 {
   u32 cols = atlas->texture.width / atlas->cell_size.x;
   u32 col  = idx % cols;
   u32 row  = idx / cols;
 
-  // printn(" - idx: %d row: %d col: %d", idx, row, col);
+  Rectangle source = {
+    (float)(col * atlas->cell_size.x) + region.x,
+    (float)(row * atlas->cell_size.y) + region.y,
+    region.width,
+    region.height,
+  };
+  float w = region.width  * scale;
+  float h = region.height * scale;
+  Rectangle dest = { pos.x, pos.y, w, h };
+  Vector2 origin = { w * 0.5f, h * 0.5f };
+  DrawTexturePro(atlas->texture, source, dest, origin, rotation, tint);
+}
+
+API void draw_texture_region(Texture2D *texture, Rectangle source, Vector2 pos, float scale,
+                    float rotation, Color tint) 
+{
+  float w = source.width  * scale;
+  float h = source.height * scale;
+  Rectangle dest = { pos.x, pos.y, w, h };
+  Vector2 origin = { w * 0.5f, h * 0.5f };
+  DrawTexturePro(*texture, source, dest, origin, rotation, tint);
+}
+
+API void draw_atlas_fliph(atlas_t *atlas, u32 idx, Vector2 pos, float scale,
+                          float rotation, Color tint) 
+{
+  u32 cols = atlas->texture.width / atlas->cell_size.x;
+  u32 col  = idx % cols;
+  u32 row  = idx / cols;
 
   Rectangle source = {
     (float)(col * atlas->cell_size.x),

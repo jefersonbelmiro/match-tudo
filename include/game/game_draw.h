@@ -73,20 +73,21 @@ API void draw_board_cell_selected(game_t *game)
   draw_cell_state(game, position, CELL_SELECTED, 1.0f);
 }
 
-// border tiles from atlas_01_64: 0 top, 1 right, 2 bottom, 3 left
-#define BORDER_TILE_TOP    0
-#define BORDER_TILE_RIGHT  1
-#define BORDER_TILE_BOTTOM 2
-#define BORDER_TILE_LEFT   3
-
 API void draw_board_borders(game_t *game)
 {
   board_t *board = &game->board;
   atlas_t *borders = resource_atlas_ptr(RESOURCE_ATLAS_1_64);
+  Texture2D *border_tex = &borders->texture;
 
   u16 cols = board->size.x / board->cell_size;
   u16 rows = board->size.y / board->cell_size;
-  float tile_scale = board->scale * ((float)board->cell_size / 64.0f);
+  float tile_scale = board->scale * ((float)board->cell_size / borders->cell_size.x);
+  float half = 0.5f * borders->cell_size.x * tile_scale;
+
+  Rectangle src_top    = { 0, 0, borders->cell_size.x, 1 };
+  Rectangle src_bottom = { 0, borders->cell_size.y - 1, borders->cell_size.x, 1 };
+  Rectangle src_left   = { 0, 0, 1, borders->cell_size.y };
+  Rectangle src_right  = { borders->cell_size.x - 1, 0, 1, borders->cell_size.y };
 
   for (u16 row = 0; row < rows; row++) {
     for (u16 col = 0; col < cols; col++) {
@@ -94,11 +95,11 @@ API void draw_board_borders(game_t *game)
       Vector2 center = board_idx_to_world(board, idx);
       u8 edges = board->cell_edges[idx];
 
-      if (!(edges & EDGE_TOP))  draw_atlas(borders, BORDER_TILE_TOP,  center, tile_scale, 0, WHITE);
-      if (!(edges & EDGE_LEFT)) draw_atlas(borders, BORDER_TILE_LEFT, center, tile_scale, 0, WHITE);
+      if (!(edges & EDGE_TOP))  draw_texture_region(border_tex, src_top,    (Vector2){center.x, center.y - half}, tile_scale, 0, WHITE);
+      if (!(edges & EDGE_LEFT)) draw_texture_region(border_tex, src_left,   (Vector2){center.x - half, center.y}, tile_scale, 0, WHITE);
 
-      if (col + 1 == cols) draw_atlas(borders, BORDER_TILE_RIGHT,  center, tile_scale, 0, WHITE);
-      if (row + 1 == rows) draw_atlas(borders, BORDER_TILE_BOTTOM, center, tile_scale, 0, WHITE);
+      if (col + 1 == cols) draw_texture_region(border_tex, src_right,  (Vector2){center.x + half, center.y}, tile_scale, 0, WHITE);
+      if (row + 1 == rows) draw_texture_region(border_tex, src_bottom, (Vector2){center.x, center.y + half}, tile_scale, 0, WHITE);
     }
   }
 }

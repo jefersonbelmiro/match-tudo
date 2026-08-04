@@ -4,6 +4,7 @@
 #include "core/arena.h"
 #include "core/defs.h"
 #include "core/resources.h"
+#include "core/smath.h"
 #include "core/tween.h"
 #include "raylib.h"
 #include <stdbool.h>
@@ -21,6 +22,12 @@ typedef struct {
 } board_layer_t;
 
 typedef struct {
+  grid_idx_t *entity_index;
+  float      *alpha;
+  u16 count;
+} board_flash_table_t;
+
+typedef struct {
   atlas_t *atlas;
 
   entity_id_t    *cell_entity;  // grid idx -> entity
@@ -30,6 +37,8 @@ typedef struct {
   bool        *cell_visited; // grid idx -> bool
   float       *cell_flash;   // grid idx -> alpha (flash target)
   u8          *cell_edges;   // grid idx -> EDGE_* bits (match cache)
+
+  board_flash_table_t *board_flash;
 
   board_layer_t layer_bg;
   board_layer_t layer_fg;
@@ -54,6 +63,35 @@ API void board_layer_init(board_layer_t *layer, arena_t *arena, entity_id_t cap)
   layer->position = arena_push(arena, Vector2, cap);
   layer->count = 0;
   layer->cap = cap;
+}
+
+API void board_init(board_t *board, Vector2 view_port, u16 cell_size, arena_t *arena) 
+{
+  u16 width = m_step(view_port.x, cell_size);
+  u16 height = m_step(view_port.y, cell_size);
+  u16 cols = width / cell_size;
+  u16 rows = height / cell_size;
+
+  *board = (board_t){
+    .atlas = arena_push(arena, atlas_t, 1),
+    .cell_entity = arena_push(arena, entity_id_t, rows * cols),
+    .entity_tween = arena_push(arena, tween_h, rows * cols),
+    .entity_layer = arena_push(arena, board_layer_t*, rows * cols),
+    .cell_visited = arena_push(arena, bool, rows * cols),
+    .cell_flash = arena_push(arena, float, rows * cols),
+    .cell_edges = arena_push(arena, u8, rows * cols),
+    .position = {0, 0},
+    .size = {width, height},
+    .cell_size = cell_size,
+    .scale = 1.0,
+  };
+
+  board_layer_init(&board->layer_bg, arena, rows * cols);
+  board_layer_init(&board->layer_fg, arena, rows * cols);
+
+  mem_set_zero(board->cell_visited, rows * cols);
+  mem_set_zero(board->cell_flash, rows * cols * sizeof(float));
+  mem_set_zero(board->cell_edges, rows * cols);
 }
 
 API void board_layer_append(
@@ -245,6 +283,19 @@ API void board_compute_edges(board_t *board)
       board->cell_edges[idx] = edges;
     }
   }
+}
+
+API u16 board_match_count(board_t *board)
+{
+  u16 cols = board_cols(board);
+  u16 rows = board_rows(board);
+  u16 count = 0;
+  for (u16 idx = 0; idx < rows * cols; idx++) {
+    if (board->cell_edges[idx]) {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 API bool board_cell_is_matched(board_t *board, grid_idx_t idx)

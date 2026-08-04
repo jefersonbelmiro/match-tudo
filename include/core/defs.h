@@ -167,6 +167,8 @@ enum {
 #define IDX_NONE    ((grid_idx_t)UINT16_MAX)  // sentinel: no valid cell index
 #define ENTITY_NONE ((entity_id_t)UINT16_MAX) // sentinel: no valid entity id
 
+#define MATCH_FLASH_DURATION 0.4f
+
 API void printn(const char* format, ...) 
 {
   va_list args;
