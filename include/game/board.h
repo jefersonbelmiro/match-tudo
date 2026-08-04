@@ -230,9 +230,9 @@ API void board_compute_edges(board_t *board)
     for (u16 col = 0; col < cols; col++) {
       grid_idx_t idx = row * cols + col;
       u8 edges = 0;
-      if (col > 0     && board_cells_match_left(board, idx, idx - 1))       edges |= EDGE_LEFT;
-      if (col + 1 < cols && board_cells_match_right(board, idx, idx + 1))    edges |= EDGE_RIGHT;
-      if (row > 0     && board_cells_match_top(board, idx, idx - cols))      edges |= EDGE_TOP;
+      if (col > 0        && board_cells_match_left(board, idx, idx - 1))      edges |= EDGE_LEFT;
+      if (col + 1 < cols && board_cells_match_right(board, idx, idx + 1))     edges |= EDGE_RIGHT;
+      if (row > 0        && board_cells_match_top(board, idx, idx - cols))    edges |= EDGE_TOP;
       if (row + 1 < rows && board_cells_match_bottom(board, idx, idx + cols)) edges |= EDGE_BOTTOM;
       board->cell_edges[idx] = edges;
     }
