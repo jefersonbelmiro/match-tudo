@@ -8,8 +8,6 @@
 #include "game/game.h"
 #include "raylib.h"
 
-#define MATCH_HOVER_ALPHA 0.1f
-
 API void draw_border()
 {
   if (IsWindowFullscreen()) {
@@ -21,7 +19,7 @@ API void draw_border()
   );
 }
 
-API void draw_cell_state(game_t *game, Vector2 position, board_cell_state state, float alpha)
+API void draw_cell_state(game_t *game, Vector2 position, board_cell_state state)
 {
   board_t *board = &game->board;
   u16 cell_size = board->cell_size * board->scale;
@@ -43,7 +41,7 @@ API void draw_cell_state(game_t *game, Vector2 position, board_cell_state state,
     cell_size + 2
   };
   float line_tick = GRID_LINE_TICK;
-  DrawRectangleLinesEx(rec, line_tick, ColorAlpha(color, alpha));
+  DrawRectangleLinesEx(rec, line_tick, color);
 }
 
 API void draw_board_cell_hover(game_t *game)
@@ -55,10 +53,9 @@ API void draw_board_cell_hover(game_t *game)
   board_layer_t *layer = board->entity_layer[game->hover_id];
   entity_id_t index = layer->entity_index[game->hover_id];
   Vector2 position = layer->position[index];
-  grid_idx_t idx = layer->idx[index];
-
-  float alpha = board_cell_is_matched(board, idx) ? MATCH_HOVER_ALPHA : 1.0f;
-  draw_cell_state(game, position, CELL_HOVERED, alpha);
+  // grid_idx_t idx = layer->idx[index];
+  // float alpha = board_cell_is_matched(board, idx) ? MATCH_HOVER_ALPHA : 1.0f;
+  draw_cell_state(game, position, CELL_HOVERED);
 }
 
 API void draw_board_cell_selected(game_t *game)
@@ -70,36 +67,31 @@ API void draw_board_cell_selected(game_t *game)
   board_layer_t *layer = board->entity_layer[game->selected_id];
   entity_id_t index = layer->entity_index[game->selected_id];
   Vector2 position = layer->position[index];
-  draw_cell_state(game, position, CELL_SELECTED, 1.0f);
+  draw_cell_state(game, position, CELL_SELECTED);
 }
 
 API void draw_board_borders(game_t *game)
 {
   board_t *board = &game->board;
-  atlas_t *borders = resource_atlas_ptr(RESOURCE_ATLAS_1_64);
-  Texture2D *border_tex = &borders->texture;
-
   u16 cols = board->size.x / board->cell_size;
   u16 rows = board->size.y / board->cell_size;
-  float tile_scale = board->scale * ((float)board->cell_size / borders->cell_size.x);
-  float half = 0.5f * borders->cell_size.x * tile_scale;
-
-  Rectangle src_top    = { 0, 0, borders->cell_size.x, 1 };
-  Rectangle src_bottom = { 0, borders->cell_size.y - 1, borders->cell_size.x, 1 };
-  Rectangle src_left   = { 0, 0, 1, borders->cell_size.y };
-  Rectangle src_right  = { borders->cell_size.x - 1, 0, 1, borders->cell_size.y };
+  float cs   = board->cell_size * board->scale;
+  float tick = GRID_LINE_TICK;
+  float tick_half = tick * 0.5;
+  Color color = ORANGE;//COLOR_GRID_LINE;
 
   for (u16 row = 0; row < rows; row++) {
     for (u16 col = 0; col < cols; col++) {
       grid_idx_t idx = row * cols + col;
-      Vector2 center = board_idx_to_world(board, idx);
+      Vector2 c = board_idx_to_world(board, idx);
       u8 edges = board->cell_edges[idx];
+      float x0 = c.x - cs * 0.5f;
+      float y0 = c.y - cs * 0.5f;
 
-      if (!(edges & EDGE_TOP))  draw_texture_region(border_tex, src_top,    (Vector2){center.x, center.y - half}, tile_scale, 0, WHITE);
-      if (!(edges & EDGE_LEFT)) draw_texture_region(border_tex, src_left,   (Vector2){center.x - half, center.y}, tile_scale, 0, WHITE);
-
-      if (col + 1 == cols) draw_texture_region(border_tex, src_right,  (Vector2){center.x + half, center.y}, tile_scale, 0, WHITE);
-      if (row + 1 == rows) draw_texture_region(border_tex, src_bottom, (Vector2){center.x, center.y + half}, tile_scale, 0, WHITE);
+      if (!(edges & EDGE_TOP))  DrawLineEx((Vector2){x0 - tick_half, y0}, (Vector2){x0 + cs + tick_half, y0},      tick, color);
+      if (!(edges & EDGE_LEFT)) DrawLineEx((Vector2){x0, y0},             (Vector2){x0, y0 + cs + tick_half},      tick, color);
+      if (col + 1 == cols)      DrawLineEx((Vector2){x0 + cs, y0},        (Vector2){x0 + cs, y0 + cs}, tick, color);
+      if (row + 1 == rows)      DrawLineEx((Vector2){x0, y0 + cs},        (Vector2){x0 + cs + tick_half, y0 + cs}, tick, color);
     }
   }
 }
@@ -143,9 +135,11 @@ API void draw_board_layer_bg(game_t *game)
     Vector2 position = layer->position[i];
     draw_atlas_fliph(atlas, texture_idx, position, board->scale, 0, WHITE);
 
-    const char *text = TextFormat("%d", texture_idx);
-    float text_offset = MeasureText(text, 30) * 0.5;
-    DrawText(text, position.x - text_offset, position.y - 15, 30, GREEN);
+    if (board->draw_numbers) {
+      const char *text = TextFormat("%d", texture_idx);
+      float text_offset = MeasureText(text, 30) * 0.5;
+      DrawText(text, position.x - text_offset, position.y - 15, 30, GREEN);
+    }
   }
 }
 
@@ -161,9 +155,11 @@ API void draw_board_layer_fg(game_t *game)
     Vector2 position = layer->position[index];
     draw_atlas_fliph(atlas, texture_idx, position, board->scale, 0, WHITE);
 
-    const char *text = TextFormat("%d", texture_idx);
-    float text_offset = MeasureText(text, 30) * 0.5;
-    DrawText(text, position.x - text_offset, position.y - 15, 30, GREEN);
+    if (board->draw_numbers) {
+      const char *text = TextFormat("%d", texture_idx);
+      float text_offset = MeasureText(text, 30) * 0.5;
+      DrawText(text, position.x - text_offset, position.y - 15, 30, GREEN);
+    }
   }
 }
 

@@ -131,7 +131,7 @@ API void game_update_input(game_t *game)
   u16 idx = row * cols + col;
 
   game->hover_id = ENTITY_NONE;
-  if (in_board_bounds) {
+  if (in_board_bounds && !board->completed) {
     game->hover_id = board->cell_entity[idx];
   }
 
@@ -153,6 +153,7 @@ API void game_update_input(game_t *game)
       printn("match count: %d/%d", board_match_count(&game->board), board_grid_size(&game->board));
       if (board_match_count(&game->board) == board_grid_size(&game->board)) {
         printn("GAME COMPLETED!");
+        board->completed = true;
       }
 
     } else {

@@ -169,6 +169,12 @@ enum {
 
 #define MATCH_FLASH_DURATION 0.4f
 
+// match cache: per-cell bits telling which of its 4 edges are matched
+#define EDGE_TOP     (1u << 0)
+#define EDGE_RIGHT   (1u << 1)
+#define EDGE_BOTTOM  (1u << 2)
+#define EDGE_LEFT    (1u << 3)
+
 API void printn(const char* format, ...) 
 {
   va_list args;

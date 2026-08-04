@@ -43,6 +43,8 @@ typedef struct {
   board_layer_t layer_bg;
   board_layer_t layer_fg;
 
+  bool    completed;
+  bool    draw_numbers;
   Vector2 position;
   Vector2 size;
   u16     cell_size;
@@ -220,12 +222,6 @@ API grid_idx_t board_entity_texture(board_t *board, entity_id_t id)
   board_layer_t *layer = board->entity_layer[id];
   return layer->texture_idx[layer->entity_index[id]];
 }
-
-// match cache: per-cell bits telling which of its 4 edges are matched
-#define EDGE_TOP     (1u << 0)
-#define EDGE_RIGHT   (1u << 1)
-#define EDGE_BOTTOM  (1u << 2)
-#define EDGE_LEFT    (1u << 3)
 
 // directional match: the target neighbor's texture is one step ahead of source
 //   right  -> texture(source) + 1   == texture(target)

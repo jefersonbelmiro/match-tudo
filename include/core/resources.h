@@ -21,6 +21,7 @@ typedef enum  {
   RESOURCE_TEXTURE_002,
   RESOURCE_TEXTURE_003,
   RESOURCE_TEXTURE_004,
+  RESOURCE_TEXTURE_005,
 
   RESOURCE_TEXTURE_NPATCH_32X32_3,
 
@@ -104,6 +105,7 @@ static resources_path_t g_resources_path = {
   .texture_array[RESOURCE_TEXTURE_002] = "resources/texture/002.jpg",
   .texture_array[RESOURCE_TEXTURE_003] = "resources/texture/003.jpg",
   .texture_array[RESOURCE_TEXTURE_004] = "resources/texture/004.jpg",
+  .texture_array[RESOURCE_TEXTURE_005] = "resources/texture/005.jpg",
 
   .texture_array[RESOURCE_TEXTURE_NPATCH_32X32_3] = "resources/texture/9-patch-32x32_3.png",
 
