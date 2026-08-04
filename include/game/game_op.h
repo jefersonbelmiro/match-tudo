@@ -147,6 +147,8 @@ API void game_update_input(game_t *game)
 
       board_grid_snap_animated(board, game->selected_id, idx);
       board_grid_snap_animated(board, game->hover_id, game->selected_idx);
+
+      board_compute_edges(&game->board);
     } else {
       board_grid_snap_animated(board, game->selected_id, game->selected_idx);
     }
@@ -199,27 +201,13 @@ API void game_flash_matches(board_t *board, grid_idx_t idx)
   board->cell_visited[idx] = true;
 
   u16 cols = board_cols(board);
-  u16 rows = board_rows(board);
-  u16 row = idx / cols;
-  u16 col = idx % cols;
+  u8 edges = board->cell_edges[idx];
   bool matched = false;
 
-  if (col > 0 && board_cells_match_left(board, idx, idx - 1)) {
-    matched = true;
-    // game_flash_matches(board, idx - 1);
-  }
-  if (col + 1 < cols && board_cells_match_right(board, idx, idx + 1)) {
-    matched = true;
-    // game_flash_matches(board, idx + 1);
-  }
-  if (row > 0 && board_cells_match_top(board, idx, idx - cols)) {
-    matched = true;
-    // game_flash_matches(board, idx - cols);
-  }
-  if (row + 1 < rows && board_cells_match_bottom(board, idx, idx + cols)) {
-    matched = true;
-    // game_flash_matches(board, idx + cols);
-  }
+  if (edges & EDGE_LEFT)   { matched = true; game_flash_matches(board, idx - 1); }
+  if (edges & EDGE_RIGHT)  { matched = true; game_flash_matches(board, idx + 1); }
+  if (edges & EDGE_TOP)    { matched = true; game_flash_matches(board, idx - cols); }
+  if (edges & EDGE_BOTTOM) { matched = true; game_flash_matches(board, idx + cols); }
 
   if (matched) {
     game_cell_flash(board, idx);
@@ -274,6 +262,7 @@ API void game_init(game_t *game, game_config_t cfg, arena_t *arena)
     .entity_layer = arena_push(arena, board_layer_t*, rows * cols),
     .cell_visited = arena_push(arena, bool, rows * cols),
     .cell_flash = arena_push(arena, float, rows * cols),
+    .cell_edges = arena_push(arena, u8, rows * cols),
     .position = {0, 0},
     .size = {width, height},
     .cell_size = cfg.cell_size,
@@ -285,9 +274,11 @@ API void game_init(game_t *game, game_config_t cfg, arena_t *arena)
 
   mem_set_zero(game->board.cell_visited, rows * cols);
   mem_set_zero(game->board.cell_flash, rows * cols * sizeof(float));
+  mem_set_zero(game->board.cell_edges, rows * cols);
 
   board_sync_size(&game->board);
   game_create_board(game);
+  board_compute_edges(&game->board);
 }
 
 API void game_process(game_t *game, float delta)

@@ -29,6 +29,7 @@ typedef struct {
 
   bool        *cell_visited; // grid idx -> bool
   float       *cell_flash;   // grid idx -> alpha (flash target)
+  u8          *cell_edges;   // grid idx -> EDGE_* bits (match cache)
 
   board_layer_t layer_bg;
   board_layer_t layer_fg;
@@ -182,11 +183,21 @@ API grid_idx_t board_entity_texture(board_t *board, entity_id_t id)
   return layer->texture_idx[layer->entity_index[id]];
 }
 
+// match cache: per-cell bits telling which of its 4 edges are matched
+#define EDGE_TOP     (1u << 0)
+#define EDGE_RIGHT   (1u << 1)
+#define EDGE_BOTTOM  (1u << 2)
+#define EDGE_LEFT    (1u << 3)
+
+// directional match: the target neighbor's texture is one step ahead of source
+//   right  -> texture(source) + 1   == texture(target)
+//   left   -> texture(source) - 1   == texture(target)
+//   bottom -> texture(source) + cols == texture(target)
+//   top    -> texture(source) - cols == texture(target)
 API bool board_cells_match_dir(board_t *board, grid_idx_t source_idx, grid_idx_t target_idx, int diff_inc)
 {
   grid_idx_t source_texture_idx = board_entity_texture(board, board->cell_entity[source_idx]);
   grid_idx_t target_texture_idx = board_entity_texture(board, board->cell_entity[target_idx]);
-
   return source_texture_idx + diff_inc == target_texture_idx;
 }
 
@@ -208,6 +219,29 @@ API bool board_cells_match_bottom(board_t *board, grid_idx_t source_idx, grid_id
 API bool board_cells_match_top(board_t *board, grid_idx_t source_idx, grid_idx_t target_idx)
 {
   return board_cells_match_dir(board, source_idx, target_idx, -board_cols(board));
+}
+
+// rebuild the edge match cache; call once after the board state changes (swap)
+API void board_compute_edges(board_t *board)
+{
+  u16 cols = board_cols(board);
+  u16 rows = board_rows(board);
+  for (u16 row = 0; row < rows; row++) {
+    for (u16 col = 0; col < cols; col++) {
+      grid_idx_t idx = row * cols + col;
+      u8 edges = 0;
+      if (col > 0     && board_cells_match_left(board, idx, idx - 1))       edges |= EDGE_LEFT;
+      if (col + 1 < cols && board_cells_match_right(board, idx, idx + 1))    edges |= EDGE_RIGHT;
+      if (row > 0     && board_cells_match_top(board, idx, idx - cols))      edges |= EDGE_TOP;
+      if (row + 1 < rows && board_cells_match_bottom(board, idx, idx + cols)) edges |= EDGE_BOTTOM;
+      board->cell_edges[idx] = edges;
+    }
+  }
+}
+
+API bool board_cell_is_matched(board_t *board, grid_idx_t idx)
+{
+  return board->cell_edges[idx] != 0;
 }
 
 API void board_sync_size(board_t *board)

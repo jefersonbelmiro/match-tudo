@@ -8,6 +8,8 @@
 #include "game/game.h"
 #include "raylib.h"
 
+#define MATCH_HOVER_ALPHA 0.1f
+
 API void draw_border()
 {
   if (IsWindowFullscreen()) {
@@ -19,7 +21,7 @@ API void draw_border()
   );
 }
 
-API void draw_cell_state(game_t *game, Vector2 position, board_cell_state state)
+API void draw_cell_state(game_t *game, Vector2 position, board_cell_state state, float alpha)
 {
   board_t *board = &game->board;
   u16 cell_size = board->cell_size * board->scale;
@@ -41,7 +43,7 @@ API void draw_cell_state(game_t *game, Vector2 position, board_cell_state state)
     cell_size + 2
   };
   float line_tick = GRID_LINE_TICK;
-  DrawRectangleLinesEx(rec, line_tick, color);
+  DrawRectangleLinesEx(rec, line_tick, ColorAlpha(color, alpha));
 }
 
 API void draw_board_cell_hover(game_t *game)
@@ -53,9 +55,10 @@ API void draw_board_cell_hover(game_t *game)
   board_layer_t *layer = board->entity_layer[game->hover_id];
   entity_id_t index = layer->entity_index[game->hover_id];
   Vector2 position = layer->position[index];
-  // Vector2 position = board_idx_to_world(board, layer->idx[index]);
-  draw_cell_state(game, position, CELL_HOVERED);
-  // DrawText(TextFormat("id: %d\nindex: %d", game->hover_id, index), position.x - 40, position.y - 40, 20, RED);
+  grid_idx_t idx = layer->idx[index];
+
+  float alpha = board_cell_is_matched(board, idx) ? MATCH_HOVER_ALPHA : 1.0f;
+  draw_cell_state(game, position, CELL_HOVERED, alpha);
 }
 
 API void draw_board_cell_selected(game_t *game)
@@ -67,14 +70,15 @@ API void draw_board_cell_selected(game_t *game)
   board_layer_t *layer = board->entity_layer[game->selected_id];
   entity_id_t index = layer->entity_index[game->selected_id];
   Vector2 position = layer->position[index];
-  draw_cell_state(game, position, CELL_SELECTED);
+  draw_cell_state(game, position, CELL_SELECTED, 1.0f);
 }
 
-// border tiles from atlas_01_64: 0 top, 1 right, 2 bottom, 3 left
+// border tiles from atlas_01_64: 0 top, 1 right, 2 bottom, 3 left, 4 full frame (4 corners)
 #define BORDER_TILE_TOP    0
 #define BORDER_TILE_RIGHT  1
 #define BORDER_TILE_BOTTOM 2
 #define BORDER_TILE_LEFT   3
+#define BORDER_TILE_FULL   4
 
 API void draw_board_borders(game_t *game)
 {
@@ -89,16 +93,17 @@ API void draw_board_borders(game_t *game)
     for (u16 col = 0; col < cols; col++) {
       grid_idx_t idx = row * cols + col;
       Vector2 center = board_idx_to_world(board, idx);
+      u8 edges = board->cell_edges[idx];
 
-      bool match_top    = (row > 0)     && board_cells_match_top(board, idx, idx - cols);
-      bool match_right  = (col + 1 < cols) && board_cells_match_right(board, idx, idx + 1);
-      bool match_bottom = (row + 1 < rows) && board_cells_match_bottom(board, idx, idx + cols);
-      bool match_left   = (col > 0)     && board_cells_match_left(board, idx, idx - 1);
+      if (edges == 0) {
+        draw_atlas(borders, BORDER_TILE_FULL, center, tile_scale, 0, WHITE);
+        continue;
+      }
 
-      if (!match_top)    draw_atlas(borders, BORDER_TILE_TOP,    center, tile_scale, 0, WHITE);
-      if (!match_right)  draw_atlas(borders, BORDER_TILE_RIGHT,  center, tile_scale, 0, WHITE);
-      if (!match_bottom) draw_atlas(borders, BORDER_TILE_BOTTOM, center, tile_scale, 0, WHITE);
-      if (!match_left)   draw_atlas(borders, BORDER_TILE_LEFT,   center, tile_scale, 0, WHITE);
+      if (!(edges & EDGE_TOP))    draw_atlas(borders, BORDER_TILE_TOP,    center, tile_scale, 0, WHITE);
+      if (!(edges & EDGE_RIGHT))  draw_atlas(borders, BORDER_TILE_RIGHT,  center, tile_scale, 0, WHITE);
+      if (!(edges & EDGE_BOTTOM)) draw_atlas(borders, BORDER_TILE_BOTTOM, center, tile_scale, 0, WHITE);
+      if (!(edges & EDGE_LEFT))   draw_atlas(borders, BORDER_TILE_LEFT,   center, tile_scale, 0, WHITE);
     }
   }
 }
