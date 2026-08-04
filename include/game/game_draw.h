@@ -73,12 +73,11 @@ API void draw_board_cell_selected(game_t *game)
   draw_cell_state(game, position, CELL_SELECTED, 1.0f);
 }
 
-// border tiles from atlas_01_64: 0 top, 1 right, 2 bottom, 3 left, 4 full frame (4 corners)
+// border tiles from atlas_01_64: 0 top, 1 right, 2 bottom, 3 left
 #define BORDER_TILE_TOP    0
 #define BORDER_TILE_RIGHT  1
 #define BORDER_TILE_BOTTOM 2
 #define BORDER_TILE_LEFT   3
-#define BORDER_TILE_FULL   4
 
 API void draw_board_borders(game_t *game)
 {
@@ -95,15 +94,11 @@ API void draw_board_borders(game_t *game)
       Vector2 center = board_idx_to_world(board, idx);
       u8 edges = board->cell_edges[idx];
 
-      if (edges == 0) {
-        draw_atlas(borders, BORDER_TILE_FULL, center, tile_scale, 0, WHITE);
-        continue;
-      }
+      if (!(edges & EDGE_TOP))  draw_atlas(borders, BORDER_TILE_TOP,  center, tile_scale, 0, WHITE);
+      if (!(edges & EDGE_LEFT)) draw_atlas(borders, BORDER_TILE_LEFT, center, tile_scale, 0, WHITE);
 
-      if (!(edges & EDGE_TOP))    draw_atlas(borders, BORDER_TILE_TOP,    center, tile_scale, 0, WHITE);
-      if (!(edges & EDGE_RIGHT))  draw_atlas(borders, BORDER_TILE_RIGHT,  center, tile_scale, 0, WHITE);
-      if (!(edges & EDGE_BOTTOM)) draw_atlas(borders, BORDER_TILE_BOTTOM, center, tile_scale, 0, WHITE);
-      if (!(edges & EDGE_LEFT))   draw_atlas(borders, BORDER_TILE_LEFT,   center, tile_scale, 0, WHITE);
+      if (col + 1 == cols) draw_atlas(borders, BORDER_TILE_RIGHT,  center, tile_scale, 0, WHITE);
+      if (row + 1 == rows) draw_atlas(borders, BORDER_TILE_BOTTOM, center, tile_scale, 0, WHITE);
     }
   }
 }
