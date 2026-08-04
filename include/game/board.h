@@ -198,6 +198,14 @@ API bool board_cells_match_dir(board_t *board, grid_idx_t source_idx, grid_idx_t
 {
   grid_idx_t source_texture_idx = board_entity_texture(board, board->cell_entity[source_idx]);
   grid_idx_t target_texture_idx = board_entity_texture(board, board->cell_entity[target_idx]);
+  u16 cols = board_cols(board);
+
+  if (diff_inc == 1 || diff_inc == -1) {
+    // horizontal: same image row, consecutive columns
+    return source_texture_idx + diff_inc == target_texture_idx
+        && source_texture_idx / cols == target_texture_idx / cols;
+  }
+  // vertical: texture diff == cols implies same image column
   return source_texture_idx + diff_inc == target_texture_idx;
 }
 
