@@ -142,7 +142,6 @@ API void draw_board_layer_bg(game_t *game)
     Vector2 position = layer->position[i];
     draw_atlas_fliph(atlas, texture_idx, position, board->scale, 0, WHITE);
 
-
     const char *text = TextFormat("%d", texture_idx);
     float text_offset = MeasureText(text, 30) * 0.5;
     DrawText(text, position.x - text_offset, position.y - 15, 30, GREEN);
@@ -160,6 +159,10 @@ API void draw_board_layer_fg(game_t *game)
     grid_idx_t texture_idx = layer->texture_idx[index];
     Vector2 position = layer->position[index];
     draw_atlas_fliph(atlas, texture_idx, position, board->scale, 0, WHITE);
+
+    const char *text = TextFormat("%d", texture_idx);
+    float text_offset = MeasureText(text, 30) * 0.5;
+    DrawText(text, position.x - text_offset, position.y - 15, 30, GREEN);
   }
 }
 
