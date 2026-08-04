@@ -70,60 +70,37 @@ API void draw_board_cell_selected(game_t *game)
   draw_cell_state(game, position, CELL_SELECTED);
 }
 
-API void draw_board_grid(game_t *game)
+// border tiles from atlas_01_64: 0 top, 1 right, 2 bottom, 3 left
+#define BORDER_TILE_TOP    0
+#define BORDER_TILE_RIGHT  1
+#define BORDER_TILE_BOTTOM 2
+#define BORDER_TILE_LEFT   3
+
+API void draw_board_borders(game_t *game)
 {
   board_t *board = &game->board;
+  atlas_t *borders = resource_atlas_ptr(RESOURCE_ATLAS_1_64);
 
   u16 cols = board->size.x / board->cell_size;
   u16 rows = board->size.y / board->cell_size;
-  u16 width = board->size.x * board->scale;
-  u16 height = board->size.y * board->scale;
+  float tile_scale = board->scale * ((float)board->cell_size / 64.0f);
 
-  u16 cell_size = board->cell_size * board->scale;
-
-  float margin_left = board->position.x;
-  float margin_top  = board->position.y;
-
-  float line_tick = GRID_LINE_TICK;
-  Color line_color = RED;
-
-  // internal vertical edges, skipped between two matched cells
   for (u16 row = 0; row < rows; row++) {
-    for (u16 col = 0; col + 1 < cols; col++) {
-      grid_idx_t left_idx = row * cols + col;
-      if (board->cell_matches[left_idx] && board->cell_matches[left_idx + 1]) {
-        continue;
-      }
-      float x = margin_left + cell_size * (col + 1);
-      DrawLineEx(
-        (Vector2){ x, margin_top + cell_size * row },
-        (Vector2){ x, margin_top + cell_size * (row + 1) },
-        line_tick, line_color
-      );
-    }
-  }
-
-  // internal horizontal edges, skipped between two matched cells
-  for (u16 row = 0; row + 1 < rows; row++) {
     for (u16 col = 0; col < cols; col++) {
-      grid_idx_t top_idx = row * cols + col;
-      if (board->cell_matches[top_idx] && board->cell_matches[top_idx + cols]) {
-        continue;
-      }
-      float y = margin_top + cell_size * (row + 1);
-      DrawLineEx(
-        (Vector2){ margin_left + cell_size * col, y },
-        (Vector2){ margin_left + cell_size * (col + 1), y },
-        line_tick, line_color
-      );
+      grid_idx_t idx = row * cols + col;
+      Vector2 center = board_idx_to_world(board, idx);
+
+      bool match_top    = (row > 0)     && board_cells_match_top(board, idx, idx - cols);
+      bool match_right  = (col + 1 < cols) && board_cells_match_right(board, idx, idx + 1);
+      bool match_bottom = (row + 1 < rows) && board_cells_match_bottom(board, idx, idx + cols);
+      bool match_left   = (col > 0)     && board_cells_match_left(board, idx, idx - 1);
+
+      if (!match_top)    draw_atlas(borders, BORDER_TILE_TOP,    center, tile_scale, 0, WHITE);
+      if (!match_right)  draw_atlas(borders, BORDER_TILE_RIGHT,  center, tile_scale, 0, WHITE);
+      if (!match_bottom) draw_atlas(borders, BORDER_TILE_BOTTOM, center, tile_scale, 0, WHITE);
+      if (!match_left)   draw_atlas(borders, BORDER_TILE_LEFT,   center, tile_scale, 0, WHITE);
     }
   }
-
-  // outer frame
-  DrawRectangleLinesEx(
-    (Rectangle){ margin_left, margin_top, width, height },
-    line_tick, line_color
-  );
 }
 
 API void draw_board_match_flash(game_t *game)
@@ -184,9 +161,9 @@ API void draw_board_layer_fg(game_t *game)
 API void draw_board(game_t *game)
 {
   draw_board_layer_bg(game);
-  draw_board_match_flash(game);
-  draw_board_grid(game);
+  draw_board_borders(game);
   draw_board_cell_hover(game);
   draw_board_layer_fg(game);
+  draw_board_match_flash(game);
   draw_board_cell_selected(game);
 }
