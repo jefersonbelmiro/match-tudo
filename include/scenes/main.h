@@ -8,7 +8,7 @@
 #include "core/smath.h"
 #include "core/sound.h"
 #include "game/game_op.h"
-#include "game/puzzle.h"
+#include "game/level.h"
 
 typedef struct {
   game_t *game;
