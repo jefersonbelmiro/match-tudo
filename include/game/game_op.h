@@ -150,8 +150,8 @@ API void game_update_input(game_t *game)
 
       board_compute_edges(&game->board);
 
-      printn("match count: %d/%d", board_match_count(&game->board), board_grid_size(&game->board));
-      if (board_match_count(&game->board) == board_grid_size(&game->board)) {
+      printn("match count: %d/%d solved: %d", board_match_count(&game->board), board_match_edges_total(&game->board), board_is_solved(&game->board));
+      if (board_is_solved(&game->board)) {
         printn("GAME COMPLETED!");
         board->completed = true;
       }

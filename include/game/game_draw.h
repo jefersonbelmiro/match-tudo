@@ -78,7 +78,7 @@ API void draw_board_borders(game_t *game)
   float cs   = board->cell_size * board->scale;
   float tick = GRID_LINE_TICK;
   float tick_half = tick * 0.5;
-  Color color = ORANGE;//COLOR_GRID_LINE;
+  Color color = COLOR_GRID_LINE;
 
   for (u16 row = 0; row < rows; row++) {
     for (u16 col = 0; col < cols; col++) {

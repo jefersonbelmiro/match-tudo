@@ -45,6 +45,7 @@ typedef struct {
 
   bool    completed;
   bool    draw_numbers;
+
   Vector2 position;
   Vector2 size;
   u16     cell_size;
@@ -263,7 +264,6 @@ API bool board_cells_match_top(board_t *board, grid_idx_t source_idx, grid_idx_t
   return board_cells_match_dir(board, source_idx, target_idx, -board_cols(board));
 }
 
-// rebuild the edge match cache; call once after the board state changes (swap)
 API void board_compute_edges(board_t *board)
 {
   u16 cols = board_cols(board);
@@ -286,12 +286,33 @@ API u16 board_match_count(board_t *board)
   u16 cols = board_cols(board);
   u16 rows = board_rows(board);
   u16 count = 0;
-  for (u16 idx = 0; idx < rows * cols; idx++) {
-    if (board->cell_edges[idx]) {
-      count += 1;
+  for (u16 row = 0; row < rows; row++) {
+    for (u16 col = 0; col < cols; col++) {
+      u8 edges = board->cell_edges[row * cols + col];
+      if (edges & EDGE_RIGHT)  count += 1;
+      if (edges & EDGE_BOTTOM) count += 1;
     }
   }
   return count;
+}
+
+API u16 board_match_edges_total(board_t *board)
+{
+  u16 cols = board_cols(board);
+  u16 rows = board_rows(board);
+  return rows * (cols - 1) + cols * (rows - 1);
+}
+
+API bool board_is_solved(board_t *board)
+{
+  u16 rows = board_rows(board);
+  u16 cols = board_cols(board);
+  for (u16 idx = 0; idx < rows * cols; idx++) {
+    if (board_entity_texture(board, board->cell_entity[idx]) != idx) {
+      return false;
+    }
+  }
+  return true;
 }
 
 API bool board_cell_is_matched(board_t *board, grid_idx_t idx)

@@ -31,9 +31,13 @@
 #define COLOR_SECONDARY_DARK_9 ColorBrightness(COLOR_SECONDARY, -0.9f)
 
 
-#define COLOR_GRID_HOVER    ((Color){  255,  255,  255, 185 }) 
+// #define COLOR_GRID_HOVER    ((Color){  255,  255,  255, 185 }) 
+// #define COLOR_GRID_LINE     ((Color){  0,  0,  0, 255 })
+// #define COLOR_GRID_SELECTED ((Color){  255, 255, 255, 205 })
+
+#define COLOR_GRID_HOVER    COLOR_PRIMARY
 #define COLOR_GRID_LINE     ((Color){  0,  0,  0, 255 })
-#define COLOR_GRID_SELECTED ((Color){  255, 255, 255, 205 })
+#define COLOR_GRID_SELECTED COLOR_PRIMARY
 #define GRID_LINE_TICK 4.0
 
 #define UI_ALPHA_DISABLED 0.35f

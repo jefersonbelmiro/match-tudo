@@ -20,10 +20,19 @@ API main_scene_t* main_scene_init()
   game_t *game = arena_push(arena, game_t, 1);
   screen_size_t *screen = app_screen_size();
 
+  grid_idx_t textures[] = {
+    RESOURCE_TEXTURE_001,
+    RESOURCE_TEXTURE_002,
+    RESOURCE_TEXTURE_003,
+    RESOURCE_TEXTURE_004,
+    RESOURCE_TEXTURE_005,
+  };
+  grid_idx_t texture_idx = textures[m_rand32(0, countof(textures) - 1)];
+
   game_config_t cfg = {
     .cell_size = 128,
     .view_port = { min(screen->x, 400) * 0.9, min(screen->y, 600) * 0.9 },
-    .texture_idx = RESOURCE_TEXTURE_005,
+    .texture_idx = texture_idx,
   };
   game_init(game, cfg, arena);
   scene->game = game;

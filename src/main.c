@@ -1,6 +1,7 @@
 #include <raylib.h>
 #include <stdint.h>
-#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include "core/defs.h"
 #if HOT_RELOAD
 #include "hot/reload.h"
@@ -9,7 +10,7 @@
 
 int main()
 {
-  printf("main()\n");
+  srand(time(NULL));
 
   SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST | FLAG_WINDOW_RESIZABLE);
   SetTraceLogLevel(LOG_WARNING);
@@ -54,7 +55,14 @@ int main()
     EndDrawing();
   }
 
+#if DEBUG_MEMORY_USAGE
+  arena_print_stats(app->arena->debug_id);
+  // arena_print_track(app->arena->debug_id, false);
+#endif
   app_fini();
+#if DEBUG_MEMORY_USAGE
+  mem_print_stats();
+#endif
   CloseWindow();
 
   return 0;
