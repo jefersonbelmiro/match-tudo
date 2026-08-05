@@ -31,11 +31,11 @@ API main_scene_t* main_scene_init()
   // grid_idx_t texture_idx = textures[m_rand32(0, countof(textures) - 1)];
   
   level_pack_t *lvl_pack = level_pack_load(arena);
-  level_t *lvl = &lvl_pack->levels[0];
+  level_t *lvl = level_pack_current(lvl_pack);
 
   game_config_t cfg = {
-    .cell_size = lvl->cell_size,
     .view_port = { min(screen->x, 400) * 0.9, min(screen->y, 600) * 0.9 },
+    .cell_size = lvl->cell_size,
     .texture_idx = lvl->texture_idx,
   };
   game_init(game, cfg, arena);

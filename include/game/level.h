@@ -4,6 +4,7 @@
 #include "core/arena.h"
 #include "core/mem.h"
 #include "core/resources.h"
+#include "core/smath.h"
 
 #define LEVEL_PACK_NAME_MAX 64
 #define LEVEL_PACK_CATEGORY_MAX 64
@@ -18,6 +19,8 @@ typedef struct {
   level_t *levels;
   char     name[LEVEL_PACK_NAME_MAX];
   char     category[LEVEL_PACK_CATEGORY_MAX];
+  bool     random;
+  bool     index;
   u16      cap;
   u16      count;
 } level_pack_t;
@@ -26,6 +29,8 @@ void level_pack_init(level_pack_t *pack, u16 cap, arena_t *arena)
 {
   *pack = (level_pack_t) {
     .levels = arena_push(arena, level_t, cap),
+    .random = false,
+    .index = 0,
     .cap = cap,
     .count = 0,
   };
@@ -38,13 +43,21 @@ level_pack_t *level_pack_load(arena_t *arena)
     { .texture_idx = RESOURCE_TEXTURE_002, .cell_size = 128 },
     { .texture_idx = RESOURCE_TEXTURE_003, .cell_size = 96  },
   };
+  u16 count = countof(levels);
   level_pack_t *pack = arena_push(arena, level_pack_t, 1);
   *pack = (level_pack_t){
     .name = "Ragnarok Online",
-    .levels = arena_push(arena, level_t, countof(levels)),
-    .count = countof(levels),
-    .cap = countof(levels),
+    .random = true,
+    .index = m_rand32(0, count - 1),
+    .levels = arena_push(arena, level_t, count),
+    .count = count,
+    .cap = count,
   };
-  mem_copy(levels, pack->levels, sizeof(level_t) * countof(levels));
+  mem_copy(levels, pack->levels, sizeof(level_t) * count);
   return pack;
+}
+
+level_t *level_pack_current(level_pack_t *pack)
+{
+  return &pack->levels[pack->index];
 }
