@@ -1,6 +1,10 @@
 #pragma once
 
 #include "core/arena.h"
+#include "core/defs.h"
+#include "raylib.h"
+
+#define LEVEL_PACK_DEV_DIR "packs"
 
 typedef enum {
   EDITOR_ACTION_NONE,
@@ -16,6 +20,25 @@ typedef struct {
   editor_action_t action;
 } editor_t;
 
+API void editor_drop_files_update(editor_t *editor)
+{
+  (void) editor;
+  if (!IsFileDropped()) {
+    return;
+  }
+
+  FilePathList files = LoadDroppedFiles();
+  if (files.count > 0) {
+    printn("drop file: %s", files.paths[0]);
+    // int content_size = 0;
+    // unsigned char *content = LoadFileData(editor->drop_file_name, &content_size);
+    // printn("drop file: %s", editor->drop_file_name);
+    // printn(" - content size: %d", content_size);
+  }
+
+  UnloadDroppedFiles(files);
+}
+
 API void editor_init(editor_t *editor, arena_t *arena)
 {
   *editor = (editor_t){
@@ -27,6 +50,7 @@ API void editor_init(editor_t *editor, arena_t *arena)
 API void editor_process(editor_t *editor, float delta)
 {
   (void) editor; (void) delta;
+
 }
 
 API void editor_draw(editor_t *editor)
