@@ -107,6 +107,13 @@ typedef struct {
   float y;
 } screen_size_t;
 
+typedef struct {
+  float x;
+  float y;
+  float width;
+  float height;
+} view_port_t;
+
 typedef enum {
   SYNC_SIGNAL_WINDOW_RESIZED,
   SYNC_SIGNAL_ON_ENTER,  // called once before entering loop starts

@@ -13,36 +13,89 @@
 #include "raylib.h"
 #include <stdbool.h>
 
+#define GAME_VIEW_PORT_WIDTH   400
+#define GAME_VIEW_PORT_HEIGHT  600
+#define GAME_HUD_TOPBAR_HEIGHT 48
+#define GAME_HUD_FOOTER_HEIGHT 48
+
+API view_port_t game_view_port_max()
+{
+  return (view_port_t){
+    .x = 0,
+    .y = 0,
+    .width = GAME_VIEW_PORT_WIDTH,
+    .height = GAME_VIEW_PORT_HEIGHT,
+  };
+}
+
+API view_port_t game_view_port_board(view_port_t vp)
+{
+  return (view_port_t){
+    .x = vp.x,
+    .y = vp.y + GAME_HUD_TOPBAR_HEIGHT,
+    .width = vp.width,
+    .height = vp.height - GAME_HUD_TOPBAR_HEIGHT - GAME_HUD_FOOTER_HEIGHT,
+  };
+}
+
+API void game_sync_view_port(game_t *game)
+{
+  view_port_t max_vp = game_view_port_max();
+  screen_size_t *screen = app_screen_size();
+  float width = min(screen->x, max_vp.width);
+  float height = min(screen->y, max_vp.height);
+  game->view_port = (view_port_t){ 
+    .x = m_floor(screen->x * 0.5 - width  * 0.5),
+    .y = 0,
+    .width = width,
+    .height = height,
+  };
+}
+
 API void game_sync_size(game_t *game)
 {
   board_t *board = &game->board;
-  screen_size_t *screen = app_screen_size();
+  game_sync_view_port(game);
+
+  view_port_t board_vp = game_view_port_board(game->view_port);
+  if (board_vp.width < 1.0f || board_vp.height < 1.0f) {
+    return;
+  }
+
   board->scale = 1.0f;
-
-  if (board->size.x > screen->x - 40 && board->size.y > screen->y - 40) {
-    board->scale = (screen->x - 40) / board->size.x;
-  }
-  else if (board->size.x > screen->x - 40) {
-    board->scale = (screen->x - 40) / board->size.x;
-  }
-  else if (board->size.y > screen->y - 40) {
-    board->scale = (screen->y - 40) / board->size.y;
+  if (board->size.x > board_vp.width || board->size.y > board_vp.height) {
+    float scale_x = board_vp.width  / board->size.x;
+    float scale_y = board_vp.height / board->size.y;
+    board->scale = min(scale_x, scale_y);
   }
 
-  board_sync_size(&game->board);
+  float scaled_width  = board->size.x * board->scale;
+  float scaled_height = board->size.y * board->scale;
+  board->position = (Vector2){
+    m_floor(board_vp.x + (board_vp.width  - scaled_width)  * 0.5f),
+    m_floor(board_vp.y + (board_vp.height - scaled_height) * 0.5f),
+  };
+
+  printn("[game_sync_size]:");
+  printn(" - vp: (%g, %g, %g, %g)", game->view_port.x, game->view_port.y, game->view_port.width, game->view_port.height);
+  printn(" - board vp: (%g, %g, %g, %g)", board_vp.x, board_vp.y, board_vp.width, board_vp.height);
+  printn(" - size: (%g, %g)", board->size.x, board->size.y);
+  printn(" - scale: %g", board->scale);
+  printn(" - position: (%g, %g)", board->position.x, board->position.y);
+
+  board_sync_position(&game->board);
 }
 
 API void game_update_input(game_t *game)
 {
   board_t *board = &game->board;
-  u16 cell_size = board->cell_size * board->scale;
+  float cell_size = board->cell_size * board->scale;
   Vector2 mouse = GetMousePosition();
-  screen_size_t *screen = app_screen_size();
-  u16 width = board->size.x * board->scale;
-  u16 height = board->size.y * board->scale;
+  float width = board->size.x * board->scale;
+  float height = board->size.y * board->scale;
 
-  float left = screen->x * 0.5 - width  * 0.5;
-  float top  = screen->y * 0.5 - height * 0.5;
+  float left = board->position.x;
+  float top  = board->position.y;
 
   bool in_board_bounds = true;
   if (mouse.x < left || mouse.x >= left + width) {
@@ -52,7 +105,7 @@ API void game_update_input(game_t *game)
     in_board_bounds = false;
   }
 
-  u16 cols = width / cell_size;
+  u16 cols = board_cols(board);
   u16 col = m_floor((mouse.x - left) / cell_size);
   u16 row = m_floor((mouse.y - top) / cell_size);
   u16 idx = row * cols + col;
@@ -82,10 +135,21 @@ API void game_update_input(game_t *game)
         printn("GAME COMPLETED!");
         board->completed = true;
 
+        // @todo: 
+        //  #1 - start timer to show win effects
+        //  #2 - recreate board from "next" button
+        //  #2.2 - on "next" show level map selector
+        //  #2.3 - recreate board from "level map selector"
         if (!level_pack_is_last(game->lvl_pack)) {
-          arena_reset(game->board_arena);
           level_t *level = level_pack_next(game->lvl_pack);
-          board_init(board, game->view_port, level, game->board_arena);
+          arena_reset(game->board_arena);
+          view_port_t board_vp = game_view_port_board(game_view_port_max());
+          board_init(board, board_vp, level, game->board_arena);
+          game_sync_size(game);
+
+          game->hover_id = ENTITY_NONE;
+          // game->selected_id = ENTITY_NONE;
+          // game->selected_idx = IDX_NONE;
         }
       }
 
@@ -188,9 +252,6 @@ API void game_init(game_t *game, arena_t *arena)
   game->selected_id = ENTITY_NONE;
   game->selected_idx = IDX_NONE;
 
-  screen_size_t *screen = app_screen_size();
-  game->view_port = (Vector2){ min(screen->x, 400) * 0.9, min(screen->y, 600) * 0.9 };
-
   game->lvl_pack = level_pack_load(arena);
   if (game->lvl_pack->random) {
     game->lvl_pack->index = m_rand32(0, game->lvl_pack->count - 1);
@@ -198,7 +259,9 @@ API void game_init(game_t *game, arena_t *arena)
 
   level_t *lvl = level_pack_current(game->lvl_pack);
 
-  board_init(&game->board, game->view_port, lvl, game->board_arena);
+  view_port_t board_vp = game_view_port_board(game_view_port_max());
+  board_init(&game->board, board_vp, lvl, game->board_arena);
+  game_sync_size(game);
 }
 
 API void game_process(game_t *game, float delta)

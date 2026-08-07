@@ -40,7 +40,7 @@ level_pack_t *level_pack_load(arena_t *arena)
   level_t levels[] = {
     { .texture_idx = RESOURCE_TEXTURE_001, .cell_size = 128 },
     { .texture_idx = RESOURCE_TEXTURE_002, .cell_size = 128 },
-    { .texture_idx = RESOURCE_TEXTURE_003, .cell_size = 96  },
+    { .texture_idx = RESOURCE_TEXTURE_003, .cell_size = 128+64  },
   };
   u16 count = countof(levels);
   level_pack_t *pack = arena_push(arena, level_pack_t, 1);

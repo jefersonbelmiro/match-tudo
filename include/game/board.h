@@ -59,9 +59,9 @@ typedef enum {
   CELL_SELECTED,
 } board_cell_state;
 
-API void board_sync_size(board_t *board);
-API void board_compute_edges(board_t *board);
 API void board_create(board_t *board, level_t *level);
+API void board_sync_position(board_t *board);
+API void board_compute_edges(board_t *board);
 
 API void board_layer_init(board_layer_t *layer, arena_t *arena, entity_id_t cap)
 {
@@ -74,11 +74,11 @@ API void board_layer_init(board_layer_t *layer, arena_t *arena, entity_id_t cap)
   layer->cap = cap;
 }
 
-API void board_init(board_t *board, Vector2 view_port, level_t *level, arena_t *arena) 
+API void board_init(board_t *board, view_port_t view_port, level_t *level, arena_t *arena) 
 {
   u16 cell_size = level->cell_size;
-  u16 width = m_step(view_port.x, cell_size);
-  u16 height = m_step(view_port.y, cell_size);
+  u16 width = m_step(view_port.width, cell_size);
+  u16 height = m_step(view_port.height, cell_size);
   u16 cols = width / cell_size;
   u16 rows = height / cell_size;
 
@@ -103,7 +103,7 @@ API void board_init(board_t *board, Vector2 view_port, level_t *level, arena_t *
   mem_set_zero(board->cell_flash, rows * cols * sizeof(float));
   mem_set_zero(board->cell_edges, rows * cols);
 
-  board_sync_size(board);
+  board_sync_position(board);
   board_create(board, level);
   board_compute_edges(board);
 }
@@ -184,8 +184,8 @@ API Vector2 board_idx_to_world(board_t *board, grid_idx_t idx)
   u16 row = idx / cols;
   u16 col = idx % cols;
   return (Vector2){
-    board->position.x + cell_size * col + cell_size * 0.5,
-    board->position.y + cell_size * row + cell_size * 0.5
+    m_floor(board->position.x + cell_size * col + cell_size * 0.5),
+    m_floor(board->position.y + cell_size * row + cell_size * 0.5)
   };
 }
 
@@ -331,14 +331,14 @@ API bool board_cell_is_matched(board_t *board, grid_idx_t idx)
   return board->cell_edges[idx] != 0;
 }
 
-API void board_sync_size(board_t *board)
+API void board_sync_position(board_t *board)
 {
-  screen_size_t *screen = app_screen_size();
-  u16 width = board->size.x * board->scale;
-  u16 height = board->size.y * board->scale;
-  float left = screen->x * 0.5 - width  * 0.5;
-  float top  = screen->y * 0.5 - height * 0.5;
-  board->position = (Vector2){ left, top };
+  // screen_size_t *screen = app_screen_size();
+  // u16 width = board->size.x * board->scale;
+  // u16 height = board->size.y * board->scale;
+  // float left = m_floor(screen->x * 0.5 - width  * 0.5);
+  // float top  = m_floor(screen->y * 0.5 - height * 0.5);
+  // board->position = (Vector2){ left, top };
   {
     board_layer_t *layer = &board->layer_bg;
     for (entity_id_t i = 0; i < layer->count; i++) {

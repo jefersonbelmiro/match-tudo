@@ -46,7 +46,7 @@ API void draw_cell_state(game_t *game, Vector2 position, board_cell_state state)
 
 API void draw_board_cell_hover(game_t *game)
 {
-  if (game->hover_id == IDX_NONE) {
+  if (game->hover_id == ENTITY_NONE) {
     return;
   }
   board_t *board = &game->board;
@@ -60,7 +60,7 @@ API void draw_board_cell_hover(game_t *game)
 
 API void draw_board_cell_selected(game_t *game)
 {
-  if (game->selected_id == IDX_NONE) {
+  if (game->selected_id == ENTITY_NONE) {
     return;
   }
   board_t *board = &game->board;
