@@ -1,9 +1,9 @@
 #pragma once
 
 #include "core/app.h"
+#include "core/arena.h"
 #include "core/defs.h"
 #include "core/mem.h"
-#include "core/resources.h"
 #include "core/smath.h"
 #include "core/tween.h"
 #include "game/board.h"
@@ -12,81 +12,6 @@
 #include "game/level.h"
 #include "raylib.h"
 #include <stdbool.h>
-
-API void game_create_board(game_t *game)
-{
-  level_t *lvl = level_pack_current(game->lvl_pack);
-  Texture2D target_texture = resource_texture(lvl->texture_idx);
-  board_t *board = &game->board;
-  float texture_scale = 1.0;
-
-  if (target_texture.height > target_texture.width) {
-    texture_scale = (float)board->size.x / target_texture.width;
-  } else if (target_texture.width > target_texture.height) {
-    if (board->size.y > board->size.x) {
-      texture_scale = (float)board->size.y / target_texture.height;
-    } else {
-      texture_scale = (float)board->size.x / target_texture.width;
-    }
-  }
-
-  float texture_offset_top = target_texture.height * texture_scale * 0.5;
-  if (target_texture.height > board->size.y) {
-    texture_offset_top -= (target_texture.height * texture_scale - board->size.y) * 0.5;
-  }
-  float texture_offset_left = target_texture.width * texture_scale * 0.5;
-  if (target_texture.width > board->size.x) {
-    texture_offset_left -= (target_texture.width * texture_scale - board->size.x) * 0.5;
-  }
-
-  RenderTexture2D render = LoadRenderTexture(board->size.x, board->size.y);
-  BeginTextureMode(render);
-
-  draw_texture(&target_texture,
-               texture_offset_left,
-               texture_offset_top,
-               0, texture_scale, WHITE);
-  EndTextureMode();
-  board->atlas->texture = render.texture;
-  board->atlas->cell_size = (Vector2){board->cell_size, board->cell_size};
-
-  u16 cell_size = board->cell_size * board->scale;
-  u16 cols = board->size.x / board->cell_size;
-  u16 rows = board->size.y / board->cell_size;
-
-  float cell_offset_x = board->position.x + cell_size * 0.5;
-  float cell_offset_y = board->position.y + cell_size * 0.5;
-  
-  board_layer_t *layer_bg = &board->layer_bg;
-
-  u16 grid_size = rows * cols;
-  for (u16 idx = 0; idx < grid_size; idx++) {
-    u16 row = idx / cols;
-    u16 col = idx % cols;
-    entity_id_t id = idx;
-    board_layer_append(
-      layer_bg, 
-      id, 
-      idx,
-      (Vector2){
-        cell_offset_x + cell_size * col,
-        cell_offset_y + cell_size * row
-      },
-      idx
-    );
-    board->entity_layer[id] = layer_bg;
-    board->cell_entity[idx] = id;
-    board->entity_tween[id] = TWEEN_NONE;
-  }
-
-  // fisher-yates/knuth shuffle
-  for (u16 i = layer_bg->count - 1; i > 0; i--) {
-    u16 j = m_rand32(0, i);
-    u16 tmp = layer_bg->texture_idx[i];
-    layer_bg->texture_idx[i] = layer_bg->texture_idx[j];
-    layer_bg->texture_idx[j] = tmp;
-  }
-}
 
 API void game_sync_size(game_t *game)
 {
@@ -156,6 +81,12 @@ API void game_update_input(game_t *game)
       if (board_is_solved(&game->board)) {
         printn("GAME COMPLETED!");
         board->completed = true;
+
+        if (!level_pack_is_last(game->lvl_pack)) {
+          arena_reset(game->board_arena);
+          level_t *level = level_pack_next(game->lvl_pack);
+          board_init(board, game->view_port, level, game->board_arena);
+        }
       }
 
     } else {
@@ -252,6 +183,7 @@ API void game_init(game_t *game, arena_t *arena)
   mem_set_zero(game, sizeof(*game));
 
   game->arena  = arena;
+  game->board_arena = arena_create_sub(arena, 10, "board");
   game->hover_id = ENTITY_NONE;
   game->selected_id = ENTITY_NONE;
   game->selected_idx = IDX_NONE;
@@ -260,12 +192,13 @@ API void game_init(game_t *game, arena_t *arena)
   game->view_port = (Vector2){ min(screen->x, 400) * 0.9, min(screen->y, 600) * 0.9 };
 
   game->lvl_pack = level_pack_load(arena);
-  level_t *lvl = level_pack_current(game->lvl_pack);
-  board_init(&game->board, game->view_port, lvl->cell_size, arena);
+  if (game->lvl_pack->random) {
+    game->lvl_pack->index = m_rand32(0, game->lvl_pack->count - 1);
+  }
 
-  board_sync_size(&game->board);
-  game_create_board(game);
-  board_compute_edges(&game->board);
+  level_t *lvl = level_pack_current(game->lvl_pack);
+
+  board_init(&game->board, game->view_port, lvl, game->board_arena);
 }
 
 API void game_process(game_t *game, float delta)

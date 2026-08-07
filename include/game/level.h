@@ -18,10 +18,10 @@ typedef struct {
   level_t *levels;
   char     name[LEVEL_PACK_NAME_MAX];
   char     category[LEVEL_PACK_CATEGORY_MAX];
-  bool     random;
   u16      index;
   u16      cap;
   u16      count;
+  bool     random;
 } level_pack_t;
 
 void level_pack_init(level_pack_t *pack, u16 cap, arena_t *arena)
@@ -47,7 +47,7 @@ level_pack_t *level_pack_load(arena_t *arena)
   *pack = (level_pack_t){
     .name = "Ragnarok Online",
     .random = true,
-    .index = 0, //m_rand32(0, count - 1),
+    .index = 0,
     .levels = arena_push(arena, level_t, count),
     .count = count,
     .cap = count,

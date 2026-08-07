@@ -15,6 +15,7 @@ typedef struct {
 
 typedef struct {
   arena_t       *arena;
+  arena_t       *board_arena;
   level_pack_t  *lvl_pack;
   // game_config_t config;
   Vector2       view_port;
