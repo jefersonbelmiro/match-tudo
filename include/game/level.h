@@ -4,7 +4,6 @@
 #include "core/arena.h"
 #include "core/mem.h"
 #include "core/resources.h"
-#include "core/smath.h"
 
 #define LEVEL_PACK_NAME_MAX 64
 #define LEVEL_PACK_CATEGORY_MAX 64
@@ -20,7 +19,7 @@ typedef struct {
   char     name[LEVEL_PACK_NAME_MAX];
   char     category[LEVEL_PACK_CATEGORY_MAX];
   bool     random;
-  bool     index;
+  u16      index;
   u16      cap;
   u16      count;
 } level_pack_t;
@@ -48,7 +47,7 @@ level_pack_t *level_pack_load(arena_t *arena)
   *pack = (level_pack_t){
     .name = "Ragnarok Online",
     .random = true,
-    .index = m_rand32(0, count - 1),
+    .index = 0, //m_rand32(0, count - 1),
     .levels = arena_push(arena, level_t, count),
     .count = count,
     .cap = count,
@@ -60,4 +59,15 @@ level_pack_t *level_pack_load(arena_t *arena)
 level_t *level_pack_current(level_pack_t *pack)
 {
   return &pack->levels[pack->index];
+}
+
+bool level_pack_is_last(level_pack_t *pack)
+{
+  return pack->index + 1 == pack->count;
+}
+
+level_t *level_pack_next(level_pack_t *pack)
+{
+  assert(pack->index + 1 < pack->count);
+  return &pack->levels[++pack->index];
 }

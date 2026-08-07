@@ -24,16 +24,15 @@ const char* format_text(const char *format, ...);
 void run(const char *format, ...);
 void compile(const char *source, const char *output);
 
-static char g_builld_path[64];
-
 int main(int argc, char *argv[])
 {
   (void) argc; (void) argv;
-  printn("dev init");
+  printn("init");
 
-  extract_build_path(argv[0], g_builld_path, sizeof(g_builld_path));
-  compile("lvl_parser.c", "lvl_parser");
-  run("./build/lvl_parser");
+  compile("tools/lvl_parser.c", "build/lvl_parser");
+  compile("src/main.c", "build/match-tudo");
+  run("build/lvl_parser");
+  run("build/match-tudo");
 
   printn_clear("");
   return EXIT_SUCCESS;
@@ -41,11 +40,10 @@ int main(int argc, char *argv[])
 
 void compile(const char *source, const char *output)
 {
-  assert(g_builld_path[0] != '\0' && "build_path not created: use extract_build_path(...)" );
   const char format[] = {
-    CC " tools/%s " INC " " DEPS " -o %s/%s"
+    CC " %s " INC " " DEPS " -o %s"
   };
-  run(format, source, g_builld_path, output);
+  run(format, source, output);
 }
 
 void run(const char *format, ...)

@@ -83,22 +83,26 @@ unsigned char *read_file_content(const char *path)
   return buffer;
 }
 
+void make_lvl_pack(file_entry_t *file, cfg_tokens_t tokens)
+{
+  (void) file;  (void) tokens;
+}
+
 int main()
 {
   file_entries_t files = {0};
-  cfg_tokens_t tokens = {0};
 
   recursive_find_ext(FILE_DIRECTORY, FILE_EXTENSION, &files);
 
   for (u16 i = 0; i < files.count; i++) {
     file_entry_t *entry = &files.array[i];
     unsigned char *buffer = read_file_content(entry->path);
+    cfg_tokens_t tokens = {0};
     cfg_parse(buffer, &tokens);
+    printn("");
+    cfg_print_tokens(&tokens);
+    printn("");
   }
-
-  printn("");
-  cfg_print_tokens(&tokens);
-  printn("");
 
   return EXIT_SUCCESS;
 }

@@ -5,10 +5,8 @@
 #include "core/arena.h"
 #include "core/defs.h"
 #include "core/resources.h"
-#include "core/smath.h"
 #include "core/sound.h"
 #include "game/game_op.h"
-#include "game/level.h"
 
 typedef struct {
   game_t *game;
@@ -19,26 +17,8 @@ API main_scene_t* main_scene_init()
   arena_t *arena = app_scene_arena();
   main_scene_t *scene = arena_push(arena, main_scene_t, 1);
   game_t *game = arena_push(arena, game_t, 1);
-  screen_size_t *screen = app_screen_size();
 
-  // grid_idx_t textures[] = {
-  //   RESOURCE_TEXTURE_001,
-  //   RESOURCE_TEXTURE_002,
-  //   RESOURCE_TEXTURE_003,
-  //   RESOURCE_TEXTURE_004,
-  //   RESOURCE_TEXTURE_005,
-  // };
-  // grid_idx_t texture_idx = textures[m_rand32(0, countof(textures) - 1)];
-  
-  level_pack_t *lvl_pack = level_pack_load(arena);
-  level_t *lvl = level_pack_current(lvl_pack);
-
-  game_config_t cfg = {
-    .view_port = { min(screen->x, 400) * 0.9, min(screen->y, 600) * 0.9 },
-    .cell_size = lvl->cell_size,
-    .texture_idx = lvl->texture_idx,
-  };
-  game_init(game, cfg, arena);
+  game_init(game, arena);
   scene->game = game;
 
   music_play(RESOURCE_MUSIC_LOOP_01);

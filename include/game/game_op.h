@@ -9,12 +9,14 @@
 #include "game/board.h"
 #include "game/game.h"
 #include "game/game_draw.h"
+#include "game/level.h"
 #include "raylib.h"
 #include <stdbool.h>
 
 API void game_create_board(game_t *game)
 {
-  Texture2D target_texture = resource_texture(game->config.texture_idx);
+  level_t *lvl = level_pack_current(game->lvl_pack);
+  Texture2D target_texture = resource_texture(lvl->texture_idx);
   board_t *board = &game->board;
   float texture_scale = 1.0;
 
@@ -245,16 +247,21 @@ API void game_sync_layer_fg(game_t *game)
   }
 }
 
-API void game_init(game_t *game, game_config_t cfg, arena_t *arena)
+API void game_init(game_t *game, arena_t *arena)
 {
   mem_set_zero(game, sizeof(*game));
 
   game->arena  = arena;
-  game->config = cfg;
   game->hover_id = ENTITY_NONE;
   game->selected_id = ENTITY_NONE;
   game->selected_idx = IDX_NONE;
-  board_init(&game->board, cfg.view_port, cfg.cell_size, arena);
+
+  screen_size_t *screen = app_screen_size();
+  game->view_port = (Vector2){ min(screen->x, 400) * 0.9, min(screen->y, 600) * 0.9 };
+
+  game->lvl_pack = level_pack_load(arena);
+  level_t *lvl = level_pack_current(game->lvl_pack);
+  board_init(&game->board, game->view_port, lvl->cell_size, arena);
 
   board_sync_size(&game->board);
   game_create_board(game);
