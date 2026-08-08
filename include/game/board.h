@@ -30,7 +30,10 @@ typedef struct {
 } board_flash_table_t;
 
 typedef struct {
-  atlas_t *atlas;
+  Texture2D source;       // level image (crop source)
+  float     tex_scale;    // source -> board-canvas scale
+  float     tex_origin_x; // source top-left in board-canvas coords
+  float     tex_origin_y;
 
   entity_id_t    *cell_entity;  // grid idx -> entity
   tween_h        *entity_tween; // entity   -> tween
@@ -83,7 +86,6 @@ API void board_init(board_t *board, view_port_t view_port, level_t *level, arena
   u16 rows = height / cell_size;
 
   *board = (board_t){
-    .atlas = arena_push(arena, atlas_t, 1),
     .cell_entity = arena_push(arena, entity_id_t, rows * cols),
     .entity_tween = arena_push(arena, tween_h, rows * cols),
     .entity_layer = arena_push(arena, board_layer_t*, rows * cols),
@@ -174,6 +176,21 @@ API void board_layer_swap_fg(board_t *board, entity_id_t id)
     return;
   }
   board_layer_swap(board, source, target, id);
+}
+
+API Rectangle board_cell_source_rect(board_t *board, grid_idx_t texture_idx)
+{
+  u16 cols = board->size.x / board->cell_size;
+  u16 col = texture_idx % cols;
+  u16 row = texture_idx / cols;
+  float s = board->tex_scale;
+  float cell = board->cell_size;
+  return (Rectangle){
+    (col * cell - board->tex_origin_x) / s,
+    (row * cell - board->tex_origin_y) / s,
+    cell / s,
+    cell / s,
+  };
 }
 
 API Vector2 board_idx_to_world(board_t *board, grid_idx_t idx)
@@ -358,40 +375,31 @@ API void board_sync_position(board_t *board)
 
 API void board_create(board_t *board, level_t *level)
 {
-  Texture2D target_texture = resource_texture(level->texture_idx);
+  board->source = resource_texture(level->texture_idx);
   float texture_scale = 1.0;
 
-  if (target_texture.height > target_texture.width) {
-    texture_scale = (float)board->size.x / target_texture.width;
-  } else if (target_texture.width > target_texture.height) {
+  if (board->source.height > board->source.width) {
+    texture_scale = (float)board->size.x / board->source.width;
+  } else if (board->source.width > board->source.height) {
     if (board->size.y > board->size.x) {
-      texture_scale = (float)board->size.y / target_texture.height;
+      texture_scale = (float)board->size.y / board->source.height;
     } else {
-      texture_scale = (float)board->size.x / target_texture.width;
+      texture_scale = (float)board->size.x / board->source.width;
     }
   }
 
-  float texture_offset_top = target_texture.height * texture_scale * 0.5;
-  if (target_texture.height > board->size.y) {
-    texture_offset_top -= (target_texture.height * texture_scale - board->size.y) * 0.5;
+  float texture_offset_top = board->source.height * texture_scale * 0.5;
+  if (board->source.height > board->size.y) {
+    texture_offset_top -= (board->source.height * texture_scale - board->size.y) * 0.5;
   }
-  float texture_offset_left = target_texture.width * texture_scale * 0.5;
-  if (target_texture.width > board->size.x) {
-    texture_offset_left -= (target_texture.width * texture_scale - board->size.x) * 0.5;
+  float texture_offset_left = board->source.width * texture_scale * 0.5;
+  if (board->source.width > board->size.x) {
+    texture_offset_left -= (board->source.width * texture_scale - board->size.x) * 0.5;
   }
 
-  // @FIXME: move to board/game
-  //  cuz will be recreate on change level
-  RenderTexture2D render = LoadRenderTexture(board->size.x, board->size.y);
-  BeginTextureMode(render);
-
-  draw_texture(&target_texture,
-               texture_offset_left,
-               texture_offset_top,
-               0, texture_scale, WHITE);
-  EndTextureMode();
-  board->atlas->texture = render.texture;
-  board->atlas->cell_size = (Vector2){board->cell_size, board->cell_size};
+  board->tex_scale = texture_scale;
+  board->tex_origin_x = texture_offset_left - board->source.width  * texture_scale * 0.5f;
+  board->tex_origin_y = texture_offset_top  - board->source.height * texture_scale * 0.5f;
 
   u16 cell_size = board->cell_size * board->scale;
   u16 cols = board->size.x / board->cell_size;

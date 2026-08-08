@@ -124,16 +124,27 @@ API void draw_board_match_flash(game_t *game)
   }
 }
 
+API void draw_board_cell(board_t *board, grid_idx_t texture_idx, Vector2 pos, Color tint)
+{
+  float cell_px = board->cell_size * board->scale;
+  Rectangle dest = {
+    pos.x - cell_px * 0.5f,
+    pos.y - cell_px * 0.5f,
+    cell_px,
+    cell_px
+  };
+  DrawTexturePro(board->source, board_cell_source_rect(board, texture_idx), dest, (Vector2){0}, 0, tint);
+}
+
 API void draw_board_layer_bg(game_t *game)
 {
   board_t *board = &game->board;
-  atlas_t *atlas = board->atlas;
   board_layer_t *layer = &board->layer_bg;
 
   for (entity_id_t i = 0; i < layer->count; i++) {
     grid_idx_t texture_idx = layer->texture_idx[i];
     Vector2 position = layer->position[i];
-    draw_atlas_fliph(atlas, texture_idx, position, board->scale, 0, WHITE);
+    draw_board_cell(board, texture_idx, position, WHITE);
 
     if (board->draw_numbers) {
       const char *text = TextFormat("%d", texture_idx);
@@ -146,14 +157,13 @@ API void draw_board_layer_bg(game_t *game)
 API void draw_board_layer_fg(game_t *game)
 {
   board_t *board = &game->board;
-  atlas_t *atlas = board->atlas;
   board_layer_t *layer = &board->layer_fg;
 
   for (entity_id_t i = layer->count; i > 0; i--) {
     entity_id_t index = i - 1;
     grid_idx_t texture_idx = layer->texture_idx[index];
     Vector2 position = layer->position[index];
-    draw_atlas_fliph(atlas, texture_idx, position, board->scale, 0, WHITE);
+    draw_board_cell(board, texture_idx, position, WHITE);
 
     if (board->draw_numbers) {
       const char *text = TextFormat("%d", texture_idx);
