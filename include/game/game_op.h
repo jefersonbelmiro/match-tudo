@@ -134,23 +134,6 @@ API void game_update_input(game_t *game)
       if (board_is_solved(&game->board)) {
         printn("GAME COMPLETED!");
         board->completed = true;
-
-        // @todo: 
-        //  #1 - start timer to show win effects
-        //  #2 - recreate board from "next" button
-        //  #2.2 - on "next" show level map selector
-        //  #2.3 - recreate board from "level map selector"
-        if (!level_pack_is_last(game->lvl_pack)) {
-          level_t *level = level_pack_next(game->lvl_pack);
-          arena_reset(game->board_arena);
-          view_port_t board_vp = game_view_port_board(game_view_port_max());
-          board_init(board, board_vp, level, game->board_arena);
-          game_sync_size(game);
-
-          game->hover_id = ENTITY_NONE;
-          // game->selected_id = ENTITY_NONE;
-          // game->selected_idx = IDX_NONE;
-        }
       }
 
     } else {
@@ -238,6 +221,24 @@ API void game_sync_layer_fg(game_t *game)
     mem_set_zero(board->cell_visited, sizeof(bool) * board_grid_size(board));
     for (u16 i = 0; i < landed_count; i++) {
       game_flash_matches(board, landed[i]);
+    }
+
+    // @fixme: tween may cause segment fault?
+    // @todo: 
+    //  #1 - start timer to show win effects
+    //  #2 - recreate board from "next" button
+    //  #2.2 - on "next" show level map selector
+    //  #2.3 - recreate board from "level map selector"
+    if (board->completed && !level_pack_is_last(game->lvl_pack)) {
+      level_t *level = level_pack_next(game->lvl_pack);
+      arena_reset(game->board_arena);
+      view_port_t board_vp = game_view_port_board(game_view_port_max());
+      board_init(board, board_vp, level, game->board_arena);
+      game_sync_size(game);
+
+      game->hover_id = ENTITY_NONE;
+      game->selected_id = ENTITY_NONE;
+      game->selected_idx = IDX_NONE;
     }
   }
 }
