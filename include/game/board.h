@@ -1,9 +1,7 @@
 #pragma once
 
-#include "core/app.h"
 #include "core/arena.h"
 #include "core/defs.h"
-#include "core/draw.h"
 #include "core/resources.h"
 #include "core/smath.h"
 #include "core/tween.h"

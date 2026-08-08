@@ -1,8 +1,6 @@
 #pragma once
 
 #include "core/defs.h"
-#include "core/draw.h"
-#include "core/resources.h"
 #include "core/style.h"
 #include "game/board.h"
 #include "game/game.h"
