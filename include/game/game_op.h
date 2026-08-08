@@ -20,24 +20,8 @@
 #define GAME_HUD_FOOTER_HEIGHT 48
 #define GAME_BOARD_PADDING_X   16
 
-API game_orientation_t game_orientation_resolve(game_orientation_t setting, screen_size_t *screen)
+API view_port_t game_view_port_max()
 {
-  if (setting != GAME_ORIENTATION_AUTO) {
-    return setting;
-  }
-  return (screen->x >= screen->y) ? GAME_ORIENTATION_LANDSCAPE : GAME_ORIENTATION_PORTRAIT;
-}
-
-API view_port_t game_view_port_base(game_orientation_t orientation)
-{
-  if (orientation == GAME_ORIENTATION_LANDSCAPE) {
-    return (view_port_t){
-      .x = 0,
-      .y = 0,
-      .width = GAME_VIEW_PORT_HEIGHT,
-      .height = GAME_VIEW_PORT_WIDTH,
-    };
-  }
   return (view_port_t){
     .x = 0,
     .y = 0,
@@ -46,9 +30,9 @@ API view_port_t game_view_port_base(game_orientation_t orientation)
   };
 }
 
-API view_port_t game_view_port_board(game_t *game, view_port_t vp)
+API view_port_t game_view_port_board(view_port_t vp)
 {
-  float scale = vp.height / game_view_port_base(game->orientation).height;
+  float scale = vp.height / GAME_VIEW_PORT_HEIGHT;
   float top   = GAME_HUD_TOPBAR_HEIGHT * scale;
   float bot   = GAME_HUD_FOOTER_HEIGHT * scale;
   return (view_port_t){
@@ -59,14 +43,14 @@ API view_port_t game_view_port_board(game_t *game, view_port_t vp)
   };
 }
 
-API view_port_t game_board_view_port(game_t *game)
+API view_port_t game_board_view_port()
 {
-  return game_view_port_board(game, game_view_port_base(game->orientation));
+  return game_view_port_board(game_view_port_max());
 }
 
 API void game_sync_view_port(game_t *game)
 {
-  view_port_t max_vp = game_view_port_base(game->orientation);
+  view_port_t max_vp = game_view_port_max();
   screen_size_t *screen = app_screen_size();
   float scale = min(screen->x / max_vp.width, screen->y / max_vp.height);
 
@@ -92,7 +76,7 @@ API void game_sync_size(game_t *game)
   board_t *board = &game->board;
   game_sync_view_port(game);
 
-  view_port_t board_vp = game_view_port_board(game, game->view_port);
+  view_port_t board_vp = game_view_port_board(game->view_port);
   if (board_vp.width < 1.0f || board_vp.height < 1.0f) {
     return;
   }
@@ -113,7 +97,6 @@ API void game_sync_size(game_t *game)
   };
 
   printn("[game_sync_size]:");
-  printn(" - orientation: %s", game->orientation == GAME_ORIENTATION_LANDSCAPE ? "landscape" : "portrait");
   printn(" - vp: (%g, %g, %g, %g)", game->view_port.x, game->view_port.y, game->view_port.width, game->view_port.height);
   printn(" - board vp: (%g, %g, %g, %g)", board_vp.x, board_vp.y, board_vp.width, board_vp.height);
   printn(" - size: (%g, %g)", board->size.x, board->size.y);
@@ -128,7 +111,7 @@ API void game_board_rebuild(game_t *game)
   level_t *level = level_pack_current(game->lvl_pack);
   tween_cancel_all();
   arena_reset(game->board_arena);
-  board_init(&game->board, game_board_view_port(game), level, game->board_arena);
+  board_init(&game->board, game_board_view_port(), level, game->board_arena);
   game_sync_size(game);
 
   game->hover_id = ENTITY_NONE;
@@ -295,8 +278,6 @@ API void game_init(game_t *game, arena_t *arena)
   game->hover_id = ENTITY_NONE;
   game->selected_id = ENTITY_NONE;
   game->selected_idx = IDX_NONE;
-  game->orientation_setting = GAME_ORIENTATION_AUTO;
-  game->orientation = game_orientation_resolve(game->orientation_setting, app_screen_size());
 
   game->lvl_pack = level_pack_load(arena);
   if (game->lvl_pack->random) {

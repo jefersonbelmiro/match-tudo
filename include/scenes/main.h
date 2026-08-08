@@ -39,17 +39,9 @@ API bool main_scene_entering(UNUSED main_scene_t *scene)
 API void main_scene_sync(main_scene_t *scene, sync_signal_type_t signal)
 {
   switch (signal) {
-    case SYNC_SIGNAL_WINDOW_RESIZED: {
-      game_t *game = scene->game;
-      game_orientation_t orientation = game_orientation_resolve(game->orientation_setting, app_screen_size());
-      if (orientation != game->orientation) {
-        game->orientation = orientation;
-        game_board_rebuild(game);
-      } else {
-        game_sync_size(game);
-      }
-      break;
-    }
+    case SYNC_SIGNAL_WINDOW_RESIZED:
+      game_sync_size(scene->game);
+    break;
     case SYNC_SIGNAL_ON_EXIT: {
       tween_cancel_all();
       timer_cancel_all();
