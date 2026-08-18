@@ -96,13 +96,6 @@ API void game_sync_size(game_t *game)
     m_floor(board_vp.y + (board_vp.height - scaled_height) * 0.5f),
   };
 
-  printn("[game_sync_size]:");
-  printn(" - vp: (%g, %g, %g, %g)", game->view_port.x, game->view_port.y, game->view_port.width, game->view_port.height);
-  printn(" - board vp: (%g, %g, %g, %g)", board_vp.x, board_vp.y, board_vp.width, board_vp.height);
-  printn(" - size: (%g, %g)", board->size.x, board->size.y);
-  printn(" - scale: %g", board->scale);
-  printn(" - position: (%g, %g)", board->position.x, board->position.y);
-
   board_sync_position(&game->board);
 }
 
